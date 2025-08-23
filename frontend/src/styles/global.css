@@ -1,0 +1,116 @@
+/* Navbar Container */
+.navbar {
+  background: linear-gradient(90deg, #0d3b66, #145ea8);
+  color: white;
+  padding: 12px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.8s ease;
+}
+
+/* Slide Down Animation for Navbar */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Inner Container */
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Logo */
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.train-icon {
+  font-size: 28px;
+  color: #f4d35e;
+  animation: bounce 2s infinite;
+}
+
+/* Bounce Animation for Train Icon */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Links */
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+  position: relative;
+  transition: color 0.3s;
+}
+
+/* Hover underline animation */
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  left: 0;
+  bottom: -4px;
+  background: #f4d35e;
+  transition: width 0.3s ease-in-out;
+}
+
+.nav-link:hover {
+  color: #f4d35e;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Login Button */
+.login-btn {
+  background: #f4d35e;
+  color: black;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.2s, background 0.3s;
+  animation: fadeInUp 1s ease-in-out;
+}
+
+.login-btn:hover {
+  background: #ffe580;
+  transform: scale(1.05);
+}
+
+/* Fade In Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
