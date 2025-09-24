@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Users, Check, X } from 'lucide-react';
+import { Train } from 'lucide-react';
 
 const SeatSelection = ({ train, passengers, onSeatSelect }) => {
   const [selectedClass, setSelectedClass] = useState(train.classes[0]);
-  const [selectedSeats, setSelectedSeats] = useState([]);
 
   const classDetails = {
     '1A': { name: 'First AC', price: train.price + 1200, color: 'purple' },
@@ -14,63 +13,21 @@ const SeatSelection = ({ train, passengers, onSeatSelect }) => {
     'SL': { name: 'Sleeper', price: train.price, color: 'gray' },
   };
 
-  const generateCoachLayout = (coachType) => {
-    const rows = coachType === 'CC' || coachType === 'EC' ? 20 : 24;
-    const seatsPerRow = coachType === 'CC' || coachType === 'EC' ? 4 : 8;
-    const seats = [];
-
-    for (let row = 1; row <= rows; row++) {
-      for (let seat = 1; seat <= seatsPerRow; seat++) {
-        const seatNumber = `${row}${String.fromCharCode(64 + seat)}`;
-        const isOccupied = Math.random() < 0.3;
-        const isSelected = selectedSeats.includes(`${coachType}1-${seatNumber}`);
-        
-        seats.push({
-          id: `${coachType}1-${seatNumber}`,
-          number: seatNumber,
-          isOccupied,
-          isSelected,
-          row,
-          seat,
-        });
-      }
-    }
-    return seats;
-  };
-
-  const coachSeats = generateCoachLayout(selectedClass);
-
-  const handleSeatClick = (seatId) => {
-    const seat = coachSeats.find(s => s.id === seatId);
-    if (!seat || seat.isOccupied) return;
-
-    if (selectedSeats.includes(seatId)) {
-      setSelectedSeats(selectedSeats.filter(id => id !== seatId));
-    } else if (selectedSeats.length < passengers) {
-      setSelectedSeats([...selectedSeats, seatId]);
-    }
-  };
-
   const handleConfirmSeats = () => {
-    const seats = selectedSeats.map(seatId => ({
+    // For now, selecting full class as the seat choice
+    const seats = Array.from({ length: passengers }).map((_, i) => ({
       coach: `${selectedClass}1`,
-      seatNumber: seatId.split('-')[1],
+      seatNumber: `Seat ${i + 1}`,
       class: selectedClass,
       price: classDetails[selectedClass].price,
     }));
     onSeatSelect(seats);
   };
 
-  const getSeatColor = (seat) => {
-    if (seat.isOccupied) return 'bg-gray-300 cursor-not-allowed';
-    if (seat.isSelected) return 'bg-green-500 text-white';
-    return 'bg-white border-2 border-gray-200 hover:border-blue-400 cursor-pointer';
-  };
-
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Select Your Seats</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Select Train Class</h2>
         <div className="flex items-center text-gray-600 space-x-4">
           <span className="font-medium">{train.name} (#{train.number})</span>
           <span>•</span>
@@ -79,7 +36,7 @@ const SeatSelection = ({ train, passengers, onSeatSelect }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Class Selection */}
+        {/* Left Section: Class Selection */}
         <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Select Class</h3>
           <div className="space-y-3">
@@ -88,10 +45,7 @@ const SeatSelection = ({ train, passengers, onSeatSelect }) => {
               return (
                 <button
                   key={trainClass}
-                  onClick={() => {
-                    setSelectedClass(trainClass);
-                    setSelectedSeats([]);
-                  }}
+                  onClick={() => setSelectedClass(trainClass)}
                   className={`w-full p-4 rounded-lg border-2 text-left transition-all duration-200 ${
                     selectedClass === trainClass
                       ? 'border-blue-500 bg-blue-50'
@@ -112,94 +66,60 @@ const SeatSelection = ({ train, passengers, onSeatSelect }) => {
               );
             })}
           </div>
-
-          {/* Seat Legend */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium text-gray-800 mb-3">Seat Legend</h4>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-white border-2 border-gray-200 rounded"></div>
-                <span className="text-sm text-gray-600">Available</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-green-500 rounded"></div>
-                <span className="text-sm text-gray-600">Selected</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                <span className="text-sm text-gray-600">Occupied</span>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Seat Map */}
+        {/* Right Section: Full Train Compartment View */}
         <div className="lg:col-span-2">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Coach {selectedClass}1</h3>
-            <div className="text-sm text-gray-600">
-              Selected: {selectedSeats.length}/{passengers} seats
-            </div>
-          </div>
+          <div className="bg-gray-100 rounded-xl p-6 flex flex-col items-center justify-center h-full">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Coach {selectedClass}1 - Full View
+            </h3>
 
-          <div className="bg-gray-50 rounded-xl p-6 mb-6">
-            <div className="grid grid-cols-8 gap-2 max-h-96 overflow-y-auto">
-              {coachSeats.map((seat) => (
-                <button
-                  key={seat.id}
-                  onClick={() => handleSeatClick(seat.id)}
-                  className={`w-10 h-10 rounded text-xs font-medium flex items-center justify-center transition-all duration-200 ${getSeatColor(seat)}`}
-                  disabled={seat.isOccupied}
-                >
-                  {seat.isOccupied ? (
-                    <X size={12} className="text-gray-500" />
-                  ) : seat.isSelected ? (
-                    <Check size={12} />
-                  ) : (
-                    seat.number
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Selected Seats Summary */}
-          {selectedSeats.length > 0 && (
-            <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <h4 className="font-medium text-gray-800 mb-2">Selected Seats</h4>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedSeats.map((seatId) => (
-                  <span
-                    key={seatId}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                  >
-                    {seatId.split('-')[1]}
-                  </span>
-                ))}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Amount:</span>
-                <span className="text-xl font-bold text-blue-600">
-                  ₹{selectedSeats.length * classDetails[selectedClass].price}
+            <div className="w-full max-w-2xl h-64 bg-white border border-gray-300 rounded-lg shadow-inner flex flex-col">
+              {/* Engine */}
+              <div className="flex justify-center items-center h-12 bg-gray-300 border-b border-gray-400">
+                <span className="text-sm font-medium text-gray-700 flex items-center">
+                  <Train size={16} className="mr-2" /> Engine
                 </span>
               </div>
-            </div>
-          )}
 
-          {/* Confirm Button */}
-          <button
-            onClick={handleConfirmSeats}
-            disabled={selectedSeats.length !== passengers}
-            className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${
-              selectedSeats.length === passengers
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {selectedSeats.length === passengers
-              ? 'Confirm Seat Selection'
-              : `Select ${passengers - selectedSeats.length} more ${passengers - selectedSeats.length === 1 ? 'seat' : 'seats'}`}
-          </button>
+              {/* Coach compartments */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 border-b border-gray-200 flex justify-between items-center px-4"
+                >
+                  <div
+                    className={`w-16 h-12 rounded-md flex items-center justify-center bg-${classDetails[selectedClass].color}-200`}
+                  >
+                    <span className="text-xs font-medium text-gray-700">Comp {i * 2 + 1}</span>
+                  </div>
+                  <div
+                    className={`w-16 h-12 rounded-md flex items-center justify-center bg-${classDetails[selectedClass].color}-200`}
+                  >
+                    <span className="text-xs font-medium text-gray-700">Comp {i * 2 + 2}</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* End */}
+              <div className="flex justify-center items-center h-12 bg-gray-300 border-t border-gray-400">
+                <span className="text-sm font-medium text-gray-700">End</span>
+              </div>
+            </div>
+
+            <p className="mt-4 text-gray-600 text-sm text-center">
+              This is a visual representation of the train compartment layout.
+            </p>
+
+            {/* Confirm Button */}
+            <button
+              onClick={handleConfirmSeats}
+              className="mt-6 w-full py-3 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              Confirm Class Selection
+            </button>
+          </div>
         </div>
       </div>
     </div>

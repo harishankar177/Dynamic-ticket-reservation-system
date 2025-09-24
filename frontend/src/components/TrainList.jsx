@@ -86,7 +86,56 @@ const TrainList = ({ searchData, onSelectTrain }) => {
   };
 
   return (
+
     <div className="p-8">
+
+        {/* 🔹 Filter Options at very top */}
+    <div className="mb-8 p-6 rounded-xl">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Filter Options</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Departure Time</label>
+          <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            <option>All Times</option>
+            <option>Early Morning (00:00 - 06:00)</option>
+            <option>Morning (06:00 - 12:00)</option>
+            <option>Afternoon (12:00 - 18:00)</option>
+            <option>Evening (18:00 - 24:00)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Journey Duration</label>
+          <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            <option>All Durations</option>
+            <option>Under 12 hours</option>
+            <option>12-18 hours</option>
+            <option>18+ hours</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+          <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            <option>All Prices</option>
+            <option>Under ₹1000</option>
+            <option>₹1000 - ₹2000</option>
+            <option>₹2000+</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Train Type</label>
+          <select className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            <option>All Types</option>
+            <option>Express</option>
+            <option>Superfast</option>
+            <option>Mail</option>
+            <option>Passenger</option>
+          </select>
+        </div>
+      </div>
+    </div>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Available Trains</h2>
         <div className="flex items-center text-gray-600 space-x-4">

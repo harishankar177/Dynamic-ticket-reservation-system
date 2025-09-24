@@ -1,5 +1,6 @@
 import React from 'react';
 import { Train, Phone, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Import Link
 
 const Header = () => {
   return (
@@ -17,10 +18,6 @@ const Header = () => {
               <span>support@railwaybook.com</span>
             </div>
           </div>
-          <div className="flex space-x-4">
-            <button className="hover:text-blue-200 transition-colors">Login</button>
-            <button className="hover:text-blue-200 transition-colors">Sign Up</button>
-          </div>
         </div>
 
         {/* Main header */}
@@ -37,10 +34,11 @@ const Header = () => {
             </div>
 
             <nav className="hidden md:flex space-x-8">
-              <a href="#" className="hover:text-blue-200 transition-colors font-medium">Home</a>
-              <a href="#" className="hover:text-blue-200 transition-colors font-medium">My Bookings</a>
-              <a href="#" className="hover:text-blue-200 transition-colors font-medium">Train Status</a>
-              <a href="#" className="hover:text-blue-200 transition-colors font-medium">Contact</a>
+              <Link to="/" className="hover:text-blue-200 transition-colors font-medium">Home</Link>
+              <Link to="/bookings" className="hover:text-blue-200 transition-colors font-medium">My Bookings</Link>
+              <Link to="/status" className="hover:text-blue-200 transition-colors font-medium">Train Status</Link>
+              <Link to="/contact" className="hover:text-blue-200 transition-colors font-medium">Contact</Link>
+              <Link to="/login" className="hover:text-blue-200 transition-colors font-medium">Login</Link>
             </nav>
           </div>
         </div>

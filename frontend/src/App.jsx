@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 import Header from './components/Header';
 import SearchForm from './components/SearchForm';
@@ -8,41 +9,45 @@ import PassengerDetails from './components/PassengerDetails';
 import Payment from './components/Payment';
 import BookingConfirmation from './components/BookingConfirmation';
 
-function App() {
-  const [currentStep, setCurrentStep] = useState(0);
+function AppContent() {
   const [searchData, setSearchData] = useState(null);
   const [selectedTrain, setSelectedTrain] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [passengers, setPassengers] = useState([]);
   const [bookingData, setBookingData] = useState(null);
+  const navigate = useNavigate();
 
   const steps = [
-    { icon: Train, title: 'Search Trains', component: SearchForm },
-    { icon: Train, title: 'Select Train', component: TrainList },
-    { icon: Users, title: 'Choose Seats', component: SeatSelection },
-    { icon: Users, title: 'Passenger Details', component: PassengerDetails },
-    { icon: CreditCard, title: 'Payment', component: Payment },
-    { icon: CheckCircle, title: 'Confirmation', component: BookingConfirmation },
+    { icon: Train, title: 'Search Trains', path: '/' },
+    { icon: Train, title: 'Select Train', path: '/trains' },
+    { icon: Users, title: 'Choose Seats', path: '/seats' },
+    { icon: Users, title: 'Passenger Details', path: '/passengers' },
+    { icon: CreditCard, title: 'Payment', path: '/payment' },
+    { icon: CheckCircle, title: 'Confirmation', path: '/confirmation' },
   ];
 
+  // Find current step index based on location
+  const currentStep = steps.findIndex(step => step.path === window.location.pathname);
+
+  // Handlers now navigate to the next route
   const handleSearch = (data) => {
     setSearchData(data);
-    setCurrentStep(1);
+    navigate('/trains');
   };
 
   const handleTrainSelect = (train) => {
     setSelectedTrain(train);
-    setCurrentStep(2);
+    navigate('/seats');
   };
 
   const handleSeatSelect = (seats) => {
     setSelectedSeats(seats);
-    setCurrentStep(3);
+    navigate('/passengers');
   };
 
   const handlePassengerDetails = (passengerData) => {
     setPassengers(passengerData);
-    setCurrentStep(4);
+    navigate('/payment');
   };
 
   const handlePayment = () => {
@@ -55,57 +60,16 @@ function App() {
       bookingId: `RB${Date.now()}`,
     };
     setBookingData(booking);
-    setCurrentStep(5);
+    navigate('/confirmation');
   };
 
   const handleNewBooking = () => {
-    setCurrentStep(0);
     setSearchData(null);
     setSelectedTrain(null);
     setSelectedSeats([]);
     setPassengers([]);
     setBookingData(null);
-  };
-
-  const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 0:
-        return <SearchForm onSearch={handleSearch} />;
-      case 1:
-        return <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} />;
-      case 2:
-        return (
-          <SeatSelection
-            train={selectedTrain}
-            passengers={searchData.passengers}
-            onSeatSelect={handleSeatSelect}
-          />
-        );
-      case 3:
-        return (
-          <PassengerDetails
-            passengerCount={searchData.passengers}
-            selectedSeats={selectedSeats}
-            onSubmit={handlePassengerDetails}
-          />
-        );
-      case 4:
-        return (
-          <Payment
-            totalAmount={selectedSeats.reduce((total, seat) => total + seat.price, 0)}
-            onPayment={handlePayment}
-          />
-        );
-      case 5:
-        return (
-          <BookingConfirmation
-            bookingData={bookingData}
-            onNewBooking={handleNewBooking}
-          />
-        );
-      default:
-        return null;
-    }
+    navigate('/');
   };
 
   return (
@@ -148,10 +112,69 @@ function App() {
 
         {/* Current Step Content */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {renderCurrentStep()}
+          <Routes>
+            <Route path="/" element={<SearchForm onSearch={handleSearch} />} />
+            <Route path="/trains" element={
+              searchData ? (
+                <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} />
+              ) : (
+                <Navigate to="/" />
+              )
+            } />
+            <Route path="/seats" element={
+              selectedTrain ? (
+                <SeatSelection
+                  train={selectedTrain}
+                  passengers={searchData?.passengers}
+                  onSeatSelect={handleSeatSelect}
+                />
+              ) : (
+                <Navigate to="/trains" />
+              )
+            } />
+            <Route path="/passengers" element={
+              selectedSeats.length ? (
+                <PassengerDetails
+                  passengerCount={searchData?.passengers}
+                  selectedSeats={selectedSeats}
+                  onSubmit={handlePassengerDetails}
+                />
+              ) : (
+                <Navigate to="/seats" />
+              )
+            } />
+            <Route path="/payment" element={
+              passengers.length ? (
+                <Payment
+                  totalAmount={selectedSeats.reduce((total, seat) => total + seat.price, 0)}
+                  onPayment={handlePayment}
+                />
+              ) : (
+                <Navigate to="/passengers" />
+              )
+            } />
+            <Route path="/confirmation" element={
+              bookingData ? (
+                <BookingConfirmation
+                  bookingData={bookingData}
+                  onNewBooking={handleNewBooking}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            } />
+          </Routes>
         </div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
