@@ -21,7 +21,8 @@ const Header = () => {
           <div className="py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="bg-white bg-opacity-20 p-3 rounded-lg">
+                <div className="bg-orange-500  p-2 rounded-lg">
+            
                   <Train size={32} className="text-white" />
                 </div>
                 <div>

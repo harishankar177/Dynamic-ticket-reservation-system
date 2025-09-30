@@ -8,7 +8,8 @@ import SeatSelection from './components/SeatSelection';
 import PassengerDetails from './components/PassengerDetails';
 import Payment from './components/Payment';
 import BookingConfirmation from './components/BookingConfirmation';
-import Login from './components/Login'
+import Auth from "./components/login/Auth";
+
 
 function AppContent() {
   const [searchData, setSearchData] = useState(null);
@@ -164,7 +165,7 @@ function AppContent() {
                 <Navigate to="/" />
               )
             } />
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<Auth />} />
           </Routes>
         </div>
       </div>
