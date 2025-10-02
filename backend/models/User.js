@@ -2,13 +2,13 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  name:     { type: String, required: true },
-  email:    { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  phone:    { type: String, required: true },
-  otp:      { type: String }, // for OTP verification
-  createdAt:{ type: Date, default: Date.now }
+  username: { type: String },
+  name: { type: String },
+  email: { type: String, required: true, unique: true },
+  phone: { type: String },
+  password: { type: String },
+  otp: { type: String },           // Store OTP
+  otpExpires: { type: Date },      // Expiry time for OTP
 });
 
 export default mongoose.model("User", userSchema);
