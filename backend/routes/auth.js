@@ -69,5 +69,38 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// ---------------- LOGIN ----------------
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    // Login successful
+    res.json({
+      success: true,
+      message: "Login successful",
+      user: {
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        phone: user.phone
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 export default router;
