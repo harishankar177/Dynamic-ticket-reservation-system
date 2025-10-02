@@ -177,6 +177,7 @@ function App() {
   return (
     <Router>
       <AppContent />
+      <Auth />
     </Router>
   );
 }

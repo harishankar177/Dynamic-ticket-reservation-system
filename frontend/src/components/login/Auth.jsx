@@ -5,15 +5,15 @@ import SignUp from "./SignUp";
 import ForgotPassword from "./ForgotPassword";
 
 const Auth = () => {
-  const [currentView, setCurrentView] = useState("signin");
+  const [currentView, setCurrentView] = useState("signin"); // "signin", "signup", "forgot"
 
   const renderAuthView = () => {
     switch (currentView) {
       case "signin":
         return (
           <SignIn
-            onForgotPassword={() => setCurrentView("forgot")}
             onSignUp={() => setCurrentView("signup")}
+            onForgotPassword={() => setCurrentView("forgot")}
           />
         );
       case "signup":
@@ -29,4 +29,3 @@ const Auth = () => {
 };
 
 export default Auth;
-          

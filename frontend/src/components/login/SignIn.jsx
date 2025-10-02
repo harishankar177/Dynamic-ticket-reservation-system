@@ -96,11 +96,12 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
           </label>
             <button
                 type="button"
-                onClick={onForgotPassword} // Must use this exactly
+                onClick={onForgotPassword} // THIS MUST BE EXACTLY THIS
                 className="text-sm text-blue-600 hover:underline"
               >
                 Forgot password?
-            </button>
+              </button>
+
         </div>
 
         {/* Submit Button */}
