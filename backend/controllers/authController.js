@@ -1,19 +1,43 @@
-const User = require('../models/User');
-// const bcrypt = require('bcryptjs'); // You can comment this out
+import User from "../models/User.js";
+import bcrypt from "bcrypt";
 
-exports.signin = async (req, res) => {
+let otpStore = {}; // { email: otp }
+
+export const sendOtp = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+otpStore[email] = otp;
+console.log(`📩 OTP for ${email}: ${otp}`); // This logs OTP in the backend terminal
+
+  return res.json({ success: true, message: "OTP sent (check server console)" });
+};
+
+export const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+  if (otpStore[email] && otpStore[email] === otp) {
+    delete otpStore[email]; // clear after verify
+    return res.json({ success: true });
+  }
+  return res.status(400).json({ error: "Invalid OTP" });
+};
+
+export const signup = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials.' });
+    const { username, name, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Compare plain text password (for testing only)
-    if (user.password !== password) {
-      return res.status(400).json({ error: 'Invalid credentials.' });
-    }
+    const user = new User({
+      username,
+      name,
+      email,
+      password: hashedPassword
+    });
 
-    res.json({ message: 'Login successful.', user: { name: user.name, email: user.email } });
+    await user.save();
+    return res.json({ success: true, message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    return res.status(400).json({ error: err.message });
   }
 };

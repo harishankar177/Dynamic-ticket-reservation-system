@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 const SignIn = ({ onForgotPassword, onSignUp }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,12 +26,14 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
         password: formData.password,
       });
       alert('Login successful!');
+      localStorage.setItem('role', res.data.user.role); // <-- This should be here
       // handle login success (e.g., save user, redirect, close modal)
     } catch (err) {
       alert(err.response?.data?.error || 'Login failed');
     }
     setIsLoading(false);
   };
+
 
   return (
     <div>
@@ -147,14 +150,14 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
 
         {/* Google button (with official logo) */}
         <div className="mt-6 flex justify-center">
-          <button className="flex items-center justify-center w-48 py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <img
-              src="https://www.svgrepo.com/show/355037/google.svg"
-              alt="Google Logo"
-              className="h-5 w-5"
-            />
-            <span className="ml-2 font-medium">Google</span>
-          </button>
+            <GoogleLogin
+          onSuccess={credentialResponse => {
+            // Send credentialResponse.credential to your backend for verification
+          }}
+          onError={() => {
+            alert('Google Sign In Failed');
+          }}
+        />
         </div>
       </div>
     </div>

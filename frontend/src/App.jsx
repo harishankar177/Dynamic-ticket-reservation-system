@@ -73,6 +73,8 @@ function AppContent() {
     setBookingData(null);
     navigate('/');
   };
+   // Example for a passenger-only route
+            const isPassenger = localStorage.getItem('role') === 'passenger';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -165,6 +167,12 @@ function AppContent() {
                 <Navigate to="/" />
               )
             } />
+                       
+            
+            <Route
+              path="/passenger-dashboard"
+              element={isPassenger ? <PassengerDashboard /> : <Navigate to="/login" />}
+            />
             <Route path="/login" element={<Auth />} />
           </Routes>
         </div>
@@ -177,7 +185,7 @@ function App() {
   return (
     <Router>
       <AppContent />
-      <Auth />
+    
     </Router>
   );
 }
