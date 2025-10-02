@@ -10,7 +10,6 @@ import Payment from './components/Payment';
 import BookingConfirmation from './components/BookingConfirmation';
 import Auth from "./components/login/Auth";
 
-
 function AppContent() {
   const [searchData, setSearchData] = useState(null);
   const [selectedTrain, setSelectedTrain] = useState(null);
@@ -19,6 +18,7 @@ function AppContent() {
   const [bookingData, setBookingData] = useState(null);
   const navigate = useNavigate();
 
+  // Booking steps
   const steps = [
     { icon: Train, title: 'Search Trains', path: '/' },
     { icon: Train, title: 'Select Train', path: '/trains' },
@@ -28,10 +28,15 @@ function AppContent() {
     { icon: CheckCircle, title: 'Confirmation', path: '/confirmation' },
   ];
 
-  // Find current step index based on location
-  const currentStep = steps.findIndex(step => step.path === window.location.pathname);
+  // Only show progress on booking flow pages
+  const bookingStepsPaths = ['/', '/trains', '/seats', '/passengers', '/payment', '/confirmation'];
+  const currentPath = window.location.pathname;
+  const showProgress = bookingStepsPaths.includes(currentPath);
 
-  // Handlers now navigate to the next route
+  // Find current step index
+  const currentStep = steps.findIndex(step => step.path === currentPath);
+
+  // Handlers for booking flow
   const handleSearch = (data) => {
     setSearchData(data);
     navigate('/trains');
@@ -73,109 +78,69 @@ function AppContent() {
     setBookingData(null);
     navigate('/');
   };
-   // Example for a passenger-only route
-            const isPassenger = localStorage.getItem('role') === 'passenger';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Header />
 
-      {/* Progress Steps */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8 bg-white rounded-lg shadow-sm p-6">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = index === currentStep;
-            const isCompleted = index < currentStep;
+      {/* Render progress steps only on booking pages */}
+      {showProgress && (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8 bg-white rounded-lg shadow-sm p-6">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = index === currentStep;
+              const isCompleted = index < currentStep;
 
-            return (
-              <div key={index} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                  isCompleted 
-                    ? 'bg-green-500 text-white' 
-                    : isActive 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-400'
-                }`}>
-                  <Icon size={20} />
+              return (
+                <div key={index} className="flex items-center">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                    isCompleted 
+                      ? 'bg-green-500 text-white' 
+                      : isActive 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-400'
+                  }`}>
+                    <Icon size={20} />
+                  </div>
+                  <span className={`ml-2 text-sm font-medium ${
+                    isActive ? 'text-blue-600' : 'text-gray-500'
+                  }`}>
+                    {step.title}
+                  </span>
+                  {index < steps.length - 1 && (
+                    <div className={`w-8 h-0.5 ml-4 ${
+                      isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                    }`} />
+                  )}
                 </div>
-                <span className={`ml-2 text-sm font-medium ${
-                  isActive ? 'text-blue-600' : 'text-gray-500'
-                }`}>
-                  {step.title}
-                </span>
-                {index < steps.length - 1 && (
-                  <div className={`w-8 h-0.5 ml-4 ${
-                    isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
+      )}
 
-        {/* Current Step Content */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <Routes>
-            <Route path="/" element={<SearchForm onSearch={handleSearch} />} />
-            <Route path="/trains" element={
-              searchData ? (
-                <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} />
-              ) : (
-                <Navigate to="/" />
-              )
-            } />
-            <Route path="/seats" element={
-              selectedTrain ? (
-                <SeatSelection
-                  train={selectedTrain}
-                  passengers={searchData?.passengers}
-                  onSeatSelect={handleSeatSelect}
-                />
-              ) : (
-                <Navigate to="/trains" />
-              )
-            } />
-            <Route path="/passengers" element={
-              selectedSeats.length ? (
-                <PassengerDetails
-                  passengerCount={searchData?.passengers}
-                  selectedSeats={selectedSeats}
-                  onSubmit={handlePassengerDetails}
-                />
-              ) : (
-                <Navigate to="/seats" />
-              )
-            } />
-            <Route path="/payment" element={
-              passengers.length ? (
-                <Payment
-                  totalAmount={selectedSeats.reduce((total, seat) => total + seat.price, 0)}
-                  onPayment={handlePayment}
-                />
-              ) : (
-                <Navigate to="/passengers" />
-              )
-            } />
-            <Route path="/confirmation" element={
-              bookingData ? (
-                <BookingConfirmation
-                  bookingData={bookingData}
-                  onNewBooking={handleNewBooking}
-                />
-              ) : (
-                <Navigate to="/" />
-              )
-            } />
-                       
-            
-            <Route
-              path="/passenger-dashboard"
-              element={isPassenger ? <PassengerDashboard /> : <Navigate to="/login" />}
-            />
-            <Route path="/login" element={<Auth />} />
-          </Routes>
-        </div>
+      {/* Routes */}
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <Routes>
+          <Route path="/" element={<SearchForm onSearch={handleSearch} />} />
+          <Route path="/trains" element={
+            searchData ? <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} /> : <Navigate to="/" />
+          } />
+          <Route path="/seats" element={
+            selectedTrain ? <SeatSelection train={selectedTrain} passengers={searchData?.passengers} onSeatSelect={handleSeatSelect} /> : <Navigate to="/trains" />
+          } />
+          <Route path="/passengers" element={
+            selectedSeats.length ? <PassengerDetails passengerCount={searchData?.passengers} selectedSeats={selectedSeats} onSubmit={handlePassengerDetails} /> : <Navigate to="/seats" />
+          } />
+          <Route path="/payment" element={
+            passengers.length ? <Payment totalAmount={selectedSeats.reduce((total, seat) => total + seat.price, 0)} onPayment={handlePayment} /> : <Navigate to="/passengers" />
+          } />
+          <Route path="/confirmation" element={
+            bookingData ? <BookingConfirmation bookingData={bookingData} onNewBooking={handleNewBooking} /> : <Navigate to="/" />
+          } />
+          <Route path="/login" element={<Auth />} />
+        </Routes>
       </div>
     </div>
   );
@@ -185,7 +150,6 @@ function App() {
   return (
     <Router>
       <AppContent />
-    
     </Router>
   );
 }
