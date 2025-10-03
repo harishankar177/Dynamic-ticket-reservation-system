@@ -9,6 +9,8 @@ import PassengerDetails from './components/PassengerDetails';
 import Payment from './components/Payment';
 import BookingConfirmation from './components/BookingConfirmation';
 import Auth from "./components/login/Auth";
+import TrainSeats from './components/Trainstatus/TrainStatus';
+import TrainStatus from './components/Trainstatus/TrainStatus';
 
 function AppContent() {
   const [searchData, setSearchData] = useState(null);
@@ -140,6 +142,7 @@ function AppContent() {
             bookingData ? <BookingConfirmation bookingData={bookingData} onNewBooking={handleNewBooking} /> : <Navigate to="/" />
           } />
           <Route path="/login" element={<Auth />} />
+          <Route path="/status" element={<TrainStatus />} />
         </Routes>
       </div>
     </div>
