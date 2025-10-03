@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 import Header from './components/Header';
 import SearchForm from './components/SearchForm';
@@ -9,7 +9,8 @@ import PassengerDetails from './components/PassengerDetails';
 import Payment from './components/Payment';
 import BookingConfirmation from './components/BookingConfirmation';
 import Auth from "./components/login/Auth";
-import TrainSeats from './components/Trainstatus/TrainStatus';
+import SignUp from './components/login/SignUp';
+import ForgotPassword from './components/login/ForgotPassword';
 import TrainStatus from './components/Trainstatus/TrainStatus';
 
 function AppContent() {
@@ -19,6 +20,9 @@ function AppContent() {
   const [passengers, setPassengers] = useState([]);
   const [bookingData, setBookingData] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation(); // Get current route
+
+  const isLoginPage = location.pathname === '/login';
 
   // Booking steps
   const steps = [
@@ -30,15 +34,12 @@ function AppContent() {
     { icon: CheckCircle, title: 'Confirmation', path: '/confirmation' },
   ];
 
-  // Only show progress on booking flow pages
   const bookingStepsPaths = ['/', '/trains', '/seats', '/passengers', '/payment', '/confirmation'];
-  const currentPath = window.location.pathname;
+  const currentPath = location.pathname;
   const showProgress = bookingStepsPaths.includes(currentPath);
-
-  // Find current step index
   const currentStep = steps.findIndex(step => step.path === currentPath);
 
-  // Handlers for booking flow
+  // Handlers
   const handleSearch = (data) => {
     setSearchData(data);
     navigate('/trains');
@@ -82,13 +83,14 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Header />
+    <div className="min-h-screen w-full m-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
+      {/* Only show header if NOT login page */}
+      {!isLoginPage && <Header />}
 
-      {/* Render progress steps only on booking pages */}
-      {showProgress && (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-8 bg-white rounded-lg shadow-sm p-6">
+      {/* Booking progress steps */}
+      {showProgress && !isLoginPage && (
+        <div className="w-full m-0">
+          <div className="flex items-center justify-between mb-8 bg-white rounded-lg shadow-sm p-6 max-w-full">
             {steps.map((step, index) => {
               const Icon = step.icon;
               const isActive = index === currentStep;
@@ -122,8 +124,8 @@ function AppContent() {
         </div>
       )}
 
-      {/* Routes */}
-      <div className="max-w-6xl mx-auto px-4 py-4">
+      {/* Main content */}
+      <div className="flex-1 w-full m-0">
         <Routes>
           <Route path="/" element={<SearchForm onSearch={handleSearch} />} />
           <Route path="/trains" element={
@@ -142,6 +144,8 @@ function AppContent() {
             bookingData ? <BookingConfirmation bookingData={bookingData} onNewBooking={handleNewBooking} /> : <Navigate to="/" />
           } />
           <Route path="/login" element={<Auth />} />
+          <Route path="/signup" element={<div className="max-w-md mx-auto mt-12 bg-white rounded-2xl p-8"><SignUp onSignIn={() => navigate('/login')} /></div>} />
+          <Route path="/forgot" element={<div className="max-w-md mx-auto mt-12 bg-white rounded-2xl p-8"><ForgotPassword onBack={() => navigate('/login')} /></div>} />
           <Route path="/status" element={<TrainStatus />} />
         </Routes>
       </div>

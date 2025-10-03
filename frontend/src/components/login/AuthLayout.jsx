@@ -11,16 +11,20 @@ const AuthLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
+      {/* make background decorative and non-interactive so it doesn't block clicks */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none select-none" aria-hidden="true" style={{ zIndex: 0 }}>
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            zIndex: 0
           }}
         />
       </div>
 
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+      {/* main content above background */}
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center" style={{ zIndex: 10 }}>
+
         {/* Left Side - Branding */}
         <div className="text-white space-y-8 lg:pr-8">
           <div className="flex items-center space-x-3">
@@ -58,7 +62,7 @@ const AuthLayout = ({ children }) => {
         </div>
 
         {/* Right Side - Auth Form */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 lg:p-10">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 lg:p-10 relative z-20">
           {children}
         </div>
       </div>

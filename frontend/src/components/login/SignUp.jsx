@@ -36,7 +36,7 @@ const SignUp = ({ onSignIn }) => {
     if (!formData.email) return;
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/send-otp", { email: formData.email });
+      const res = await axios.post("http://localhost:3000/api/auth/send-otp", { email: formData.email });
       console.log("OTP sent:", res.data.otp); // show OTP in terminal for testing
       setOtpSent(true);
       alert("OTP sent to " + formData.email);
@@ -53,7 +53,7 @@ const SignUp = ({ onSignIn }) => {
       return;
     }
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/verify-otp", {
+      const res = await axios.post("http://localhost:3000/api/auth/verify-otp", {
         email: formData.email,
         otp: otpValue
       });
@@ -74,7 +74,7 @@ const SignUp = ({ onSignIn }) => {
     }
     setIsLoading(true);
     try {
-      await axios.post("http://localhost:5000/api/auth/signup", formData);
+      await axios.post("http://localhost:3000/api/auth/signup", formData);
       alert("Sign up successful!");
       if (onSignIn) onSignIn(); // redirect to SignIn page
     } catch (err) {

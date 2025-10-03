@@ -21,7 +21,7 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const res = await axios.post('http://localhost:3000/api/auth/login', {
         email: formData.email,
         password: formData.password,
       });
@@ -129,6 +129,7 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
         <p className="text-gray-600">
           Don't have an account?
           <button
+            type="button"
             onClick={onSignUp}
             className="ml-1 text-blue-600 hover:underline font-medium"
           >
@@ -152,7 +153,11 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
         <div className="mt-6 flex justify-center">
             <GoogleLogin
           onSuccess={credentialResponse => {
-            // Send credentialResponse.credential to your backend for verification
+            // Example: Send credentialResponse.credential to your backend for verification
+            if (credentialResponse && credentialResponse.credential) {
+              // You can replace this with your actual backend call
+              console.log('Google credential:', credentialResponse.credential);
+            }
           }}
           onError={() => {
             alert('Google Sign In Failed');
