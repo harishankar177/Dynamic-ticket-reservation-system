@@ -66,22 +66,28 @@ const SignUp = ({ onSignIn }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!isOtpVerified) {
-      alert("Please verify OTP first!");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await axios.post("http://localhost:3000/api/auth/signup", formData);
-      alert("Sign up successful!");
-      if (onSignIn) onSignIn(); // redirect to SignIn page
-    } catch (err) {
-      alert(err.response?.data?.error || "Sign up failed");
-    }
-    setIsLoading(false);
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!isOtpVerified) {
+    alert("Please verify OTP first!");
+    return;
+  }
+  setIsLoading(true);
+  try {
+    // Always send role: "passenger" for public signup
+    await axios.post("http://localhost:3000/api/auth/signup", {
+      ...formData,
+      role: "passenger",
+      confirmPassword: formData.confirmPassword
+    });
+    alert("Sign up successful!");
+    if (onSignIn) onSignIn(); // redirect to SignIn page
+  } catch (err) {
+    alert(err.response?.data?.error || "Sign up failed");
+  }
+  setIsLoading(false);
+};
+
 
   return (
     <div>

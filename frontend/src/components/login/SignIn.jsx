@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
 
 const SignIn = ({ onForgotPassword, onSignUp }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +11,8 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
     rememberMe: false
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -25,15 +27,32 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
         email: formData.email,
         password: formData.password,
       });
-      alert('Login successful!');
-      localStorage.setItem('role', res.data.user.role); // <-- This should be here
-      // handle login success (e.g., save user, redirect, close modal)
+
+      if (res.data.success) {
+        const { role } = res.data.user;
+        localStorage.setItem('role', role);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+
+        alert(`Login successful as ${role}`);
+
+        // role based redirect
+        if (role === "Passenger") {
+          navigate("/passenger-dashboard");
+        } else if (role === "TTE") {
+          navigate("/tte-dashboard");
+        } else if (role === "Admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/");
+        }
+      } else {
+        alert("Invalid user ❌");
+      }
     } catch (err) {
-      alert(err.response?.data?.error || 'Login failed');
+      alert(err.response?.data?.error || "Login failed ❌");
     }
     setIsLoading(false);
   };
-
 
   return (
     <div>
@@ -97,14 +116,13 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
             />
             <span className="ml-2 text-sm text-gray-600">Remember me</span>
           </label>
-            <button
-                type="button"
-                onClick={onForgotPassword} // THIS MUST BE EXACTLY THIS
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Forgot password?
-              </button>
-
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Forgot password?
+          </button>
         </div>
 
         {/* Submit Button */}
@@ -136,34 +154,6 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
             Sign up
           </button>
         </p>
-      </div>
-
-      {/* Social Login */}
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
-          </div>
-        </div>
-
-        {/* Google button (with official logo) */}
-        <div className="mt-6 flex justify-center">
-            <GoogleLogin
-          onSuccess={credentialResponse => {
-            // Example: Send credentialResponse.credential to your backend for verification
-            if (credentialResponse && credentialResponse.credential) {
-              // You can replace this with your actual backend call
-              console.log('Google credential:', credentialResponse.credential);
-            }
-          }}
-          onError={() => {
-            alert('Google Sign In Failed');
-          }}
-        />
-        </div>
       </div>
     </div>
   );
