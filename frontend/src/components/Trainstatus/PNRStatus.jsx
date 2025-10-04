@@ -1,22 +1,49 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, Ticket, MapPin, Calendar, Clock, User, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
-import { mockPNRData } from '../data/mockData';
 import CoachLayout from '../components/CoachLayout';
 
-export default function PNRStatus({ onBack }) {
+// Mock ticket dataset keyed by PNR (10 digits). Replace or connect to backend for real verification.
+const MOCK_TICKETS = {
+  '1234567890': {
+    pnr: '1234567890',
+    train: '12001 — Gatimaan Express',
+    date: '2025-10-05',
+    passengers: [
+      { name: 'A. Kumar', seat: 'S1-12', status: 'CNF' },
+      { name: 'R. Singh', seat: 'S1-13', status: 'CNF' },
+    ],
+    from: 'Hazrat Nizamuddin',
+    to: 'Bhopal',
+    boarding: 'Hazrat Nizamuddin, 06:10',
+  },
+  '9876543210': {
+    pnr: '9876543210',
+    train: '12951 — Rajdhani Express',
+    date: '2025-10-08',
+    passengers: [{ name: 'M. Patel', seat: 'A1-03', status: 'WL/2' }],
+    from: 'Mumbai Central',
+    to: 'New Delhi',
+    boarding: 'Mumbai Central, 16:30',
+  },
+};
+
+export default function PNRstatus({ onBack }) {
   const [pnrNumber, setPnrNumber] = useState('');
   const [pnrStatus, setPnrStatus] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSearch = () => {
-    if (pnrNumber.trim().length !== 10) {
+    setError('');
+    setNotFound(false);
+    const cleaned = (pnrNumber || '').trim();
+    if (!/^\d{10}$/.test(cleaned)) {
+      setError('PNR must be a 10-digit number.');
       return;
     }
-
-    const status = mockPNRData[pnrNumber];
+    const status = MOCK_TICKETS[cleaned];
     if (status) {
       setPnrStatus(status);
-      setNotFound(false);
     } else {
       setPnrStatus(null);
       setNotFound(true);
@@ -90,12 +117,12 @@ export default function PNRStatus({ onBack }) {
 
           <div className="mt-6 flex flex-wrap gap-2">
             <p className="text-sm text-slate-600 w-full mb-2">Try these sample PNRs:</p>
-            {Object.keys(mockPNRData).map((pnr) => (
+            {Object.keys(MOCK_TICKETS).map((pnr) => (
               <button
                 key={pnr}
                 onClick={() => {
                   setPnrNumber(pnr);
-                  setPnrStatus(mockPNRData[pnr]);
+                  setPnrStatus(MOCK_TICKETS[pnr]);
                   setNotFound(false);
                 }}
                 className="px-4 py-2 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors text-sm font-medium border-2 border-teal-200"
@@ -105,6 +132,8 @@ export default function PNRStatus({ onBack }) {
             ))}
           </div>
         </div>
+
+        {error && <div className="text-red-600 text-sm mb-4">{error}</div>}
 
         {notFound && (
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">

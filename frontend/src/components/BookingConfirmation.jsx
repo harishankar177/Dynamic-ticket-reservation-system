@@ -2,6 +2,27 @@ import React from 'react';
 import { CheckCircle, Download, Mail, Phone, Calendar, MapPin, Train } from 'lucide-react';
 
 const BookingConfirmation = ({ bookingData, onNewBooking }) => {
+  // Early return / fallback when bookingData is not provided
+  if (!bookingData) {
+    return (
+      <div className="p-8">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <Train size={36} />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">No booking data</h2>
+          <p className="text-gray-600 mb-4">Please complete a booking to view the confirmation page.</p>
+          <button
+            onClick={onNewBooking}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Book Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleDownloadTicket = () => {
     alert('Ticket download will be available shortly. Check your email for the e-ticket.');
   };
@@ -82,7 +103,7 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
           <div className="p-6 border-b border-gray-200">
             <h4 className="text-lg font-semibold text-gray-800 mb-4">Passenger & Seat Details</h4>
             <div className="space-y-4">
-              {bookingData.passengers.map((passenger, index) => (
+              {(bookingData?.passengers || []).map((passenger, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full font-semibold">
@@ -95,9 +116,10 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-blue-600">
-                      {bookingData.selectedSeats[index]?.coach}-{bookingData.selectedSeats[index]?.seatNumber}
+                      {bookingData?.selectedSeats?.[index]?.coach}-{bookingData?.selectedSeats?.[index]?.seatNumber}
                     </p>
-                    <p className="text-gray-600">{bookingData.selectedSeats[index]?.class}</p>
+                    {/* use bracket notation to access a property named "class" to avoid syntax error */}
+                    <p className="text-gray-600">{bookingData?.selectedSeats?.[index]?.['class']}</p>
                   </div>
                 </div>
               ))}
@@ -109,11 +131,11 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center space-x-3">
                 <Mail className="text-blue-600" size={20} />
-                <span className="text-gray-700">{bookingData.passengers[0].email}</span>
+                <span className="text-gray-700">{bookingData?.passengers?.[0]?.email ?? '—'}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="text-green-600" size={20} />
-                <span className="text-gray-700">{bookingData.passengers[0].phone}</span>
+                <span className="text-gray-700">{bookingData?.passengers?.[0]?.phone ?? '—'}</span>
               </div>
             </div>
           </div>

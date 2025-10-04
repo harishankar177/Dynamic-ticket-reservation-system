@@ -4,7 +4,6 @@ import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 import Header from './components/Header';
 import SearchForm from './components/SearchForm';
 import TrainList from './components/TrainList';
-import SeatSelection from './components/SeatSelection';
 import PassengerDetails from './components/PassengerDetails';
 import Payment from './components/Payment';
 import BookingConfirmation from './components/BookingConfirmation';
@@ -16,25 +15,23 @@ import TrainStatus from './components/Trainstatus/TrainStatus';
 function AppContent() {
   const [searchData, setSearchData] = useState(null);
   const [selectedTrain, setSelectedTrain] = useState(null);
-  const [selectedSeats, setSelectedSeats] = useState([]);
   const [passengers, setPassengers] = useState([]);
   const [bookingData, setBookingData] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation(); // Get current route
+  const location = useLocation();
 
   const isLoginPage = location.pathname === '/login';
 
-  // Booking steps
+  // Booking steps (seat selection removed)
   const steps = [
     { icon: Train, title: 'Search Trains', path: '/' },
     { icon: Train, title: 'Select Train', path: '/trains' },
-    { icon: Users, title: 'Choose Seats', path: '/seats' },
     { icon: Users, title: 'Passenger Details', path: '/passengers' },
     { icon: CreditCard, title: 'Payment', path: '/payment' },
     { icon: CheckCircle, title: 'Confirmation', path: '/confirmation' },
   ];
 
-  const bookingStepsPaths = ['/', '/trains', '/seats', '/passengers', '/payment', '/confirmation'];
+  const bookingStepsPaths = ['/', '/trains', '/passengers', '/payment', '/confirmation'];
   const currentPath = location.pathname;
   const showProgress = bookingStepsPaths.includes(currentPath);
   const currentStep = steps.findIndex(step => step.path === currentPath);
@@ -47,12 +44,7 @@ function AppContent() {
 
   const handleTrainSelect = (train) => {
     setSelectedTrain(train);
-    navigate('/seats');
-  };
-
-  const handleSeatSelect = (seats) => {
-    setSelectedSeats(seats);
-    navigate('/passengers');
+    navigate('/passengers'); // go directly to passengers
   };
 
   const handlePassengerDetails = (passengerData) => {
@@ -64,9 +56,10 @@ function AppContent() {
     const booking = {
       searchData,
       selectedTrain,
-      selectedSeats,
       passengers,
-      totalAmount: selectedSeats.reduce((total, seat) => total + seat.price, 0),
+      totalAmount: selectedTrain?.price 
+        ? selectedTrain.price * (searchData?.passengers || 1) 
+        : 0,
       bookingId: `RB${Date.now()}`,
     };
     setBookingData(booking);
@@ -76,7 +69,6 @@ function AppContent() {
   const handleNewBooking = () => {
     setSearchData(null);
     setSelectedTrain(null);
-    setSelectedSeats([]);
     setPassengers([]);
     setBookingData(null);
     navigate('/');
@@ -131,14 +123,11 @@ function AppContent() {
           <Route path="/trains" element={
             searchData ? <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} /> : <Navigate to="/" />
           } />
-          <Route path="/seats" element={
-            selectedTrain ? <SeatSelection train={selectedTrain} passengers={searchData?.passengers} onSeatSelect={handleSeatSelect} /> : <Navigate to="/trains" />
-          } />
           <Route path="/passengers" element={
-            selectedSeats.length ? <PassengerDetails passengerCount={searchData?.passengers} selectedSeats={selectedSeats} onSubmit={handlePassengerDetails} /> : <Navigate to="/seats" />
+            selectedTrain ? <PassengerDetails passengerCount={searchData?.passengers} onSubmit={handlePassengerDetails} /> : <Navigate to="/trains" />
           } />
           <Route path="/payment" element={
-            passengers.length ? <Payment totalAmount={selectedSeats.reduce((total, seat) => total + seat.price, 0)} onPayment={handlePayment} /> : <Navigate to="/passengers" />
+            passengers.length ? <Payment totalAmount={selectedTrain?.price * (searchData?.passengers || 1)} onPayment={handlePayment} /> : <Navigate to="/passengers" />
           } />
           <Route path="/confirmation" element={
             bookingData ? <BookingConfirmation bookingData={bookingData} onNewBooking={handleNewBooking} /> : <Navigate to="/" />

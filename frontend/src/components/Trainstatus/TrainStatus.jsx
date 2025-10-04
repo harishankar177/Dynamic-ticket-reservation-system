@@ -60,33 +60,6 @@ export default function TrainStatus({ onNavigate }) {
             </div>
           </button>
         </div>
-
-        {/* Features section */}
-        <div className="mt-16 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="bg-orange-500  rounded-2xl p-6 text-center border border-orange/20">
-            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Train className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-white font-bold mb-2">Live Tracking</h3>
-            <p className="text-slate-300 text-sm">Real-time train location and delay updates</p>
-          </div>
-
-          <div className="bg-teal-500 backdrop-blur-sm rounded-2xl p-6 text-center border border-white/20">
-            <div className="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Ticket className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-white font-bold mb-2">Seat Visualization</h3>
-            <p className="text-slate-300 text-sm">View your exact seat position in the coach</p>
-          </div>
-
-          <div className="bg-rose-500 backdrop-blur-sm rounded-2xl p-6 text-center border border-white/20">
-            <div className="w-12 h-12 bg-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-white font-bold mb-2">Easy Search</h3>
-            <p className="text-slate-300 text-sm">Quick access to train and PNR information</p>
-          </div>
-        </div>
       </div>
     </div>
   );

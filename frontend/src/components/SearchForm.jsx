@@ -7,19 +7,34 @@ const SearchForm = ({ onSearch }) => {
   const [date, setDate] = useState('');
   const [passengers, setPassengers] = useState(1);
 
-  const popularRoutes = [
-    { from: 'New Delhi', to: 'Mumbai', duration: '16h 20m' },
-    { from: 'Kolkata', to: 'Chennai', duration: '26h 45m' },
-    { from: 'Bangalore', to: 'Hyderabad', duration: '12h 30m' },
-    { from: 'Pune', to: 'Goa', duration: '11h 15m' },
-  ];
-
-  const cities = [
-    'New Delhi', 'Mumbai', 'Kolkata', 'Chennai', 'Bangalore', 'Hyderabad',
-    'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur',
-    'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara',
-    'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut'
-  ];
+  // Predefined routes and trains
+  const routes = {
+    'Chennai Egmore': {
+      'Kanniyakumari': [
+        'Kanniyakumari SF Express',
+        'Kashi Tami Sangamam Express'
+      ],
+      'Madurai': [
+        'Madurai Tejas Express',
+        'Vaigai SF Express',
+        'Pothigai SF Express',
+        'Chendur SF Express'
+      ]
+    },
+    'Kanniyakumari': {
+      'New Delhi': [
+        'Thirukkural SF Express',
+        'Himsagar Express'
+      ]
+    },
+    'Chennai Central': {
+      'Mysuru': [
+        'Mysuru Shatabdi Express',
+        'Ashokapuram SF Express',
+        'Kaveri Express'
+      ]
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -34,16 +49,22 @@ const SearchForm = ({ onSearch }) => {
     setTo(temp);
   };
 
-  const handleQuickSelect = (route) => {
-    setFrom(route.from);
-    setTo(route.to);
+  const handleQuickSelect = (fromCity, toCity) => {
+    setFrom(fromCity);
+    setTo(toCity);
   };
+
+  // All possible cities
+  const cities = Object.keys(routes);
+
+  // Valid "to" destinations based on selected "from"
+  const destinationOptions = from ? Object.keys(routes[from]) : [];
 
   return (
     <div className="p-8">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Book Your Train Journey</h2>
-        <p className="text-gray-600">Find and book train tickets across India</p>
+        <p className="text-gray-600">Find and book trains on real Indian routes</p>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
@@ -55,7 +76,10 @@ const SearchForm = ({ onSearch }) => {
               <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
               <select
                 value={from}
-                onChange={(e) => setFrom(e.target.value)}
+                onChange={(e) => {
+                  setFrom(e.target.value);
+                  setTo('');
+                }}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
@@ -86,11 +110,12 @@ const SearchForm = ({ onSearch }) => {
               <select
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={!from}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                 required
               >
                 <option value="">Select destination city</option>
-                {cities.filter(city => city !== from).map((city) => (
+                {destinationOptions.map((city) => (
                   <option key={city} value={city}>{city}</option>
                 ))}
               </select>
@@ -149,19 +174,24 @@ const SearchForm = ({ onSearch }) => {
       {/* Popular Routes */}
       <div className="max-w-4xl mx-auto mt-8">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Popular Routes</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {popularRoutes.map((route, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            ['Chennai Egmore', 'Kanniyakumari'],
+            ['Chennai Egmore', 'Madurai'],
+            ['Kanniyakumari', 'New Delhi'],
+            ['Chennai Central', 'Mysuru']
+          ].map(([fromCity, toCity], index) => (
             <button
               key={index}
-              onClick={() => handleQuickSelect(route)}
+              onClick={() => handleQuickSelect(fromCity, toCity)}
               className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-left"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-gray-800">{route.from}</span>
+                <span className="font-medium text-gray-800">{fromCity}</span>
                 <ArrowRightLeft size={16} className="text-gray-400" />
-                <span className="font-medium text-gray-800">{route.to}</span>
+                <span className="font-medium text-gray-800">{toCity}</span>
               </div>
-              <p className="text-sm text-gray-600">{route.duration}</p>
+              <p className="text-sm text-gray-600">Available Trains: {routes[fromCity][toCity].length}</p>
             </button>
           ))}
         </div>
