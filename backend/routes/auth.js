@@ -1,140 +1,117 @@
-// routes/auth.js
+// backend/routes/auth.js
 import express from "express";
+import User from "../models/User.js";   // your User schema
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
-import User from "../models/User.js";
+import crypto from "crypto";
 
 const router = express.Router();
 
-// In-memory OTP store — replace with DB or Redis in production
-const otpStore = {}; // { email: { otp: "123456", expires: Date } }
+// In-memory OTP store (for testing, later replace with DB or Redis)
+const otpStore = {};
 
-const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-// nodemailer transporter (Gmail example) - fallback to console if not configured
-const transporter = (() => {
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    return nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
-  }
-  return null;
-})();
-
-// POST /api/auth/send-otp
-router.post("/send-otp", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "Email is required" });
-
-    const otp = generateOtp();
-    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
-
-    otpStore[email] = { otp, expires };
-    console.log(`[OTP] ${email}: ${otp} (expires in 5m)`); // log to terminal for testing
-
-    // send email if transporter available
-    if (transporter) {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Railbook OTP Verification",
-        text: `Your Railbook OTP is ${otp}. It expires in 5 minutes.`
-      });
-    }
-
-    // For testing, return OTP in response (remove in production)
-    return res.json({ message: "OTP sent", otp }); 
-  } catch (err) {
-    console.error("send-otp error:", err);
-    return res.status(500).json({ error: "Failed to send OTP" });
-  }
-});
-
-// POST /api/auth/verify-otp
-router.post("/verify-otp", (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    if (!email || !otp) return res.status(400).json({ error: "Email and OTP required" });
-
-    const record = otpStore[email];
-    if (!record) return res.status(400).json({ error: "No OTP sent to this email" });
-    if (Date.now() > record.expires) {
-      delete otpStore[email];
-      return res.status(400).json({ error: "OTP expired" });
-    }
-    if (record.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
-
-    delete otpStore[email]; // verified, remove
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("verify-otp:", err);
-    return res.status(500).json({ error: "OTP verification failed" });
-  }
-});
-
-// POST /api/auth/signup
+// ===== SIGNUP =====
 router.post("/signup", async (req, res) => {
   try {
     const { username, name, email, phone, password, confirmPassword, role } = req.body;
-    // Basic validations
-    if (!username || !name || !email || !password || !confirmPassword)
+
+    if (!email || !password || !confirmPassword || !username) {
       return res.status(400).json({ error: "Missing required fields" });
-    if (password !== confirmPassword)
+    }
+    if (password !== confirmPassword) {
       return res.status(400).json({ error: "Passwords do not match" });
+    }
 
-    // Prevent creation of admin/tte via public signup
-    const allowedRole = role === "passenger" || !role ? "passenger" : null;
-    if (!allowedRole) return res.status(403).json({ error: "Cannot create this role via signup" });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
-    // Check duplicates
-    if (await User.findOne({ $or: [{ email }, { username }] }))
-      return res.status(400).json({ error: "Email or username already registered" });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(password, salt);
-
-    const user = new User({
-      username, name, email, phone,
-      password: hashed, role: allowedRole
-    });
-
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, name, email, phone, password: hashedPassword, role });
     await user.save();
-    return res.json({ message: "User created successfully" });
+
+    res.json({ success: true, message: "User registered successfully" });
   } catch (err) {
-    console.error("signup error:", err);
-    return res.status(500).json({ error: "Failed to create user" });
+    console.error("Signup Error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// POST /api/auth/signin
-router.post("/signin", async (req, res) => {
+// ===== LOGIN =====
+router.post("/login", async (req, res) => {
   try {
-    const { emailOrUsername, password } = req.body;
-    if (!emailOrUsername || !password) return res.status(400).json({ error: "Missing fields" });
+    const { email, password } = req.body;
 
-    const user = await User.findOne({
-      $or: [{ email: emailOrUsername }, { username: emailOrUsername }]
-    });
-    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "Invalid email or password" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ error: "Invalid credentials" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Invalid email or password" });
 
-    // sign JWT - adjust secret & expiry via env
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || "jwtsecret", { expiresIn: "7d" });
-
-    return res.json({
-      message: "Signin success",
-      token,
-      user: { id: user._id, username: user.username, email: user.email, role: user.role, name: user.name }
-    });
+    res.json({ success: true, user });
   } catch (err) {
-    console.error("signin error:", err);
-    return res.status(500).json({ error: "Signin failed" });
+    console.error("Login Error:", err);
+    res.status(500).json({ error: "Server error" });
   }
+});
+
+// ===== GENERATE & SEND OTP =====
+router.post("/send-otp", (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  otpStore[email] = otp;
+
+  console.log(`📩 OTP for ${email}: ${otp}`); // For testing
+  res.json({ success: true, message: "OTP sent to terminal (testing mode)" });
+});
+
+// ===== VERIFY OTP =====
+router.post("/verify-otp", (req, res) => {
+  const { email, otp } = req.body;
+  if (!otpStore[email]) return res.status(400).json({ error: "No OTP sent" });
+
+  if (otpStore[email] !== otp) return res.status(400).json({ error: "Invalid OTP" });
+
+  delete otpStore[email]; // OTP used → remove
+  res.json({ success: true, message: "OTP verified" });
+});
+
+// ===== FORGOT PASSWORD (SEND OTP) =====
+router.post("/forgot-password/send-otp", async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ error: "Email not found" });
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  otpStore[email] = otp;
+
+  console.log(`🔑 Forgot Password OTP for ${email}: ${otp}`);
+  res.json({ success: true, message: "OTP sent to terminal (testing mode)" });
+});
+
+// ===== FORGOT PASSWORD (VERIFY OTP) =====
+router.post("/forgot-password/verify-otp", (req, res) => {
+  const { email, otp } = req.body;
+  if (!otpStore[email]) return res.status(400).json({ error: "No OTP sent" });
+  if (otpStore[email] !== otp) return res.status(400).json({ error: "Invalid OTP" });
+
+  delete otpStore[email];
+  res.json({ success: true, message: "OTP verified" });
+});
+
+// ===== FORGOT PASSWORD (RESET) =====
+router.post("/forgot-password/reset", async (req, res) => {
+  const { email, newPassword } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ error: "Email not found" });
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+  await user.save();
+
+  res.json({ success: true, message: "Password updated successfully" });
 });
 
 export default router;

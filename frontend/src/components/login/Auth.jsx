@@ -5,6 +5,8 @@ import SignUp from "./SignUp";
 import ForgotPassword from "./ForgotPassword";
 
 const Auth = () => {
+
+  
   const [currentView, setCurrentView] = useState("signin"); // "signin", "signup", "forgot"
 
   const renderAuthView = () => {

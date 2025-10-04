@@ -1,14 +1,12 @@
-// models/User.js
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  name:     { type: String, required: true },
-  email:    { type: String, required: true, unique: true },
-  phone:    { type: String },
+  username: { type: String, required: true },
+  name: String,
+  email: { type: String, required: true, unique: true },
+  phone: String,
   password: { type: String, required: true },
-  role:     { type: String, enum: ["passenger","tte","admin"], default: "passenger" },
-  createdAt:{ type: Date, default: Date.now }
-});
+  role: { type: String, enum: ['passenger', 'TTE', 'admin'], default: 'passenger' }
+}, { timestamps: true });
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model('User', userSchema);

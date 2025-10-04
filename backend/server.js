@@ -1,38 +1,29 @@
-// server.js
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
-import dotenv from "dotenv";
-import authRoutes from "./routes/auth.js";
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import authRouter from './routes/auth.js';
+import dotenv from 'dotenv';
 
 dotenv.config();
+
 const app = express();
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
+// Routes
+app.use('/api/auth', authRouter);
 
-// Example protected routes
-import { authenticate, permit } from "./middleware/auth.js";
+// MongoDB connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/Railbook';
 
-app.get("/api/passenger/dashboard", authenticate, permit("passenger"), (req, res) => {
-  res.json({ message: "Passenger dashboard data" });
-});
-app.get("/api/tte/dashboard", authenticate, permit("tte"), (req, res) => {
-  res.json({ message: "TTE dashboard data" });
-});
-app.get("/api/admin/dashboard", authenticate, permit("admin"), (req, res) => {
-  res.json({ message: "Admin dashboard data" });
-});
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 3000;
-const MONGO = process.env.MONGO_URI || "mongodb://localhost:27017/Railbook";
-
-mongoose.connect(MONGO, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log("Mongo connected");
-    app.listen(PORT, () => console.log(`Server running ${PORT}`));
-  }).catch(err => {
-    console.error("Mongo connection error:", err);
-    process.exit(1);
-  });
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

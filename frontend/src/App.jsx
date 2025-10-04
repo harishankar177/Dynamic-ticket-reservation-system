@@ -12,6 +12,7 @@ import SignUp from './components/login/SignUp';
 import ForgotPassword from './components/login/ForgotPassword';
 import TrainStatus from './components/Trainstatus/TrainStatus';
 
+
 function AppContent() {
   const [searchData, setSearchData] = useState(null);
   const [selectedTrain, setSelectedTrain] = useState(null);
@@ -136,6 +137,8 @@ function AppContent() {
           <Route path="/signup" element={<div className="max-w-md mx-auto mt-12 bg-white rounded-2xl p-8"><SignUp onSignIn={() => navigate('/login')} /></div>} />
           <Route path="/forgot" element={<div className="max-w-md mx-auto mt-12 bg-white rounded-2xl p-8"><ForgotPassword onBack={() => navigate('/login')} /></div>} />
           <Route path="/status" element={<TrainStatus />} />
+    
+        
         </Routes>
       </div>
     </div>
