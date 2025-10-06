@@ -10,37 +10,23 @@ const SearchForm = ({ onSearch }) => {
   // Predefined routes and trains
   const routes = {
     'Chennai Egmore': {
-      'Kanniyakumari': [
-        'Kanniyakumari SF Express',
-        'Kashi Tami Sangamam Express'
-      ],
-      'Madurai': [
-        'Madurai Tejas Express',
-        'Vaigai SF Express',
-        'Pothigai SF Express',
-        'Chendur SF Express'
-      ]
+      'Kanniyakumari': ['Kanniyakumari SF Express', 'Kashi Tami Sangamam Express'],
+      'Madurai': ['Madurai Tejas Express', 'Vaigai SF Express', 'Pothigai SF Express', 'Chendur SF Express']
     },
     'Kanniyakumari': {
-      'New Delhi': [
-        'Thirukkural SF Express',
-        'Himsagar Express'
-      ]
+      'New Delhi': ['Thirukkural SF Express', 'Himsagar Express']
     },
     'Chennai Central': {
-      'Mysuru': [
-        'Mysuru Shatabdi Express',
-        'Ashokapuram SF Express',
-        'Kaveri Express'
-      ]
+      'Mysuru': ['Mysuru Shatabdi Express', 'Ashokapuram SF Express', 'Kaveri Express']
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (from && to && date && passengers) {
-      onSearch({ from, to, date, passengers });
-    }
+    if (!from || !to || !date || !passengers) return alert('Please fill all fields');
+
+    // Call the App-level booking flow handler
+    onSearch({ from, to, date, passengers });
   };
 
   const swapStations = () => {
@@ -54,10 +40,7 @@ const SearchForm = ({ onSearch }) => {
     setTo(toCity);
   };
 
-  // All possible cities
   const cities = Object.keys(routes);
-
-  // Valid "to" destinations based on selected "from"
   const destinationOptions = from ? Object.keys(routes[from]) : [];
 
   return (
@@ -69,7 +52,7 @@ const SearchForm = ({ onSearch }) => {
 
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {/* From Station */}
+          {/* From */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
             <div className="relative">
@@ -91,7 +74,7 @@ const SearchForm = ({ onSearch }) => {
             </div>
           </div>
 
-          {/* Swap Button */}
+          {/* Swap */}
           <div className="flex items-end pb-3 justify-center">
             <button
               type="button"
@@ -102,7 +85,7 @@ const SearchForm = ({ onSearch }) => {
             </button>
           </div>
 
-          {/* To Station */}
+          {/* To */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
             <div className="relative">
@@ -152,9 +135,7 @@ const SearchForm = ({ onSearch }) => {
                 required
               >
                 {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <option key={num} value={num}>
-                    {num} {num === 1 ? 'Passenger' : 'Passengers'}
-                  </option>
+                  <option key={num} value={num}>{num} {num === 1 ? 'Passenger' : 'Passengers'}</option>
                 ))}
               </select>
             </div>
@@ -171,7 +152,7 @@ const SearchForm = ({ onSearch }) => {
         </div>
       </form>
 
-      {/* Popular Routes */}
+      {/* Quick Select / Popular Routes */}
       <div className="max-w-4xl mx-auto mt-8">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Popular Routes</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -191,7 +172,9 @@ const SearchForm = ({ onSearch }) => {
                 <ArrowRightLeft size={16} className="text-gray-400" />
                 <span className="font-medium text-gray-800">{toCity}</span>
               </div>
-              <p className="text-sm text-gray-600">Available Trains: {routes[fromCity][toCity].length}</p>
+              <p className="text-sm text-gray-600">
+                Available Trains: {routes[fromCity][toCity].length}
+              </p>
             </button>
           ))}
         </div>
