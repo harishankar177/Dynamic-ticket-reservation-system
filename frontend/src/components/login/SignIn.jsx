@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,17 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  // ======= SESSION CHECK =======
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user) {
+      // Redirect based on role if already logged in
+      if (user.role === 'TTE') navigate('/tte', { replace: true });
+      else if (user.role === 'Passenger') navigate('/', { replace: true });
+      else if (user.role === 'Admin') navigate('/admin-dashboard', { replace: true });
+    }
+  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -30,27 +41,25 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
 
       if (res.data.success) {
         const { role } = res.data.user;
-        localStorage.setItem('role', role);
+
+        // Save user session
         localStorage.setItem('user', JSON.stringify(res.data.user));
+        localStorage.setItem('role', role);
 
         alert(`Login successful as ${role}`);
 
-        // role based redirect
-        if (role === "Passenger") {
-          navigate("/passenger-dashboard");
-        } else if (role === "TTE") {
-          navigate("/tte-dashboard");
-        } else if (role === "Admin") {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/");
-        }
+        // Role-based redirect
+        if (role === "Passenger") navigate('/', { replace: true });
+        else if (role === "TTE") navigate('/tte', { replace: true });
+        else if (role === "Admin") navigate('/admin-dashboard', { replace: true });
+        else navigate('/', { replace: true });
       } else {
         alert("Invalid user ❌");
       }
     } catch (err) {
       alert(err.response?.data?.error || "Login failed ❌");
     }
+
     setIsLoading(false);
   };
 

@@ -96,6 +96,7 @@ const ForgotPassword = ({ onBack }) => {
     }
   };
 
+  
   return (
     <div className="p-6 bg-white shadow rounded-lg max-w-md mx-auto">
       <div className="mb-6">

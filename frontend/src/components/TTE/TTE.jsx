@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TTEProvider } from './context/TTEContext';
-import Layout from './components/Layout';
+import Layout from './Layout';
 import Dashboard from './pages/Dashboard';
 import TicketChecking from './pages/TicketChecking';
 import CoachSupervision from './pages/CoachSupervision';
@@ -11,8 +12,26 @@ import Incidents from './pages/Incidents';
 import JourneyReport from './pages/JourneyReport';
 
 const TTE = () => {
+  const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
 
+  // ===== SESSION CHECK =====
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || user.role !== 'TTE') {
+      // If not logged in or not TTE, redirect to login
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
+
+  // ===== LOGOUT HANDLER =====
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    navigate('/login', { replace: true });
+  };
+
+  // ===== RENDER PAGES =====
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
@@ -38,7 +57,7 @@ const TTE = () => {
 
   return (
     <TTEProvider>
-      <Layout activePage={activePage} onNavigate={setActivePage}>
+      <Layout activePage={activePage} onNavigate={setActivePage} onLogout={handleLogout}>
         {renderPage()}
       </Layout>
     </TTEProvider>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTTE } from '../context/TTEContext';
-import { Brain as Train, ClipboardCheck, IndianRupee, AlertTriangle, Clock, Calendar, CheckCircle, TrendingUp } from 'lucide-react';
+import {  Train, ClipboardCheck, IndianRupee, AlertTriangle, Clock, Calendar, CheckCircle, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentDuty, ticketChecks, fines, incidents } = useTTE();

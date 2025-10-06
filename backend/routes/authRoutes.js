@@ -1,4 +1,6 @@
 import express from "express";
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
 import { sendOtp, verifyOtp, signup } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -12,18 +14,19 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // ✅ Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: 'User not found' });
     }
 
-    // 🔐 password check (compare hashed password if bcrypt used)
-    const isMatch = password === user.password; // replace with bcrypt.compare()
+    // 🔐 Compare hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // ✅ Send role and user data
+    // ✅ Return user info including role
     res.json({
       success: true,
       user: {
@@ -32,11 +35,11 @@ router.post('/login', async (req, res) => {
         role: user.role,
       },
     });
+
   } catch (err) {
     console.error('Login Error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 export default router;
