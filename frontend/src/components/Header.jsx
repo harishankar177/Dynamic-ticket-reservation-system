@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Train, Phone, Mail, Menu, X, LogOut } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Train, Phone, Mail, Menu, X, LogOut, User, Settings } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Load user info from localStorage on mount
+  // Load user info from localStorage on mount and on route change
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
-    if (user) setCurrentUser(user);
-  }, []);
+    setCurrentUser(user);
+  }, [location.pathname]);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
@@ -22,58 +23,143 @@ const Header = () => {
     localStorage.removeItem('role');
     setCurrentUser(null);
     setIsDropdownOpen(false);
+    setIsSidebarOpen(false);
     navigate('/login');
+  };
+
+  // Don't show header for TTE and Admin roles
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user && (user.role === 'TTE' || user.role === 'Admin')) {
+    return null;
+  }
+
+  // Get role display name with emoji
+  const getRoleDisplay = (role) => {
+    switch (role) {
+      case 'Passenger': return '🚆 Passenger';
+      case 'TTE': return '🎫 TTE';
+      case 'Admin': return '⚙️ Admin';
+      default: return role;
+    }
   };
 
   return (
     <>
       <header className="bg-gradient-to-r from-blue-900 via-blue-800 to-purple-900 text-white relative z-40">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="bg-orange-500 p-2 rounded-lg">
-              <Train size={32} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">RailBook</h1>
-              <p className="text-blue-200 text-sm">Your Journey, Our Priority</p>
-            </div>
+            <Link to="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+              <div className="bg-orange-500 p-2 rounded-lg">
+                <Train size={28} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">RailBook</h1>
+                <p className="text-blue-200 text-xs">Your Journey, Our Priority</p>
+              </div>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8 items-center">
-            <Link to="/" className="hover:text-blue-200 transition-colors font-medium">Home</Link>
-            <Link to="/bookings" className="hover:text-blue-200 transition-colors font-medium">My Bookings</Link>
-            <Link to="/status" className="hover:text-blue-200 transition-colors font-medium">Train Status</Link>
-            <Link to="/contact" className="hover:text-blue-200 transition-colors font-medium">Contact</Link>
+          <nav className="hidden md:flex space-x-6 items-center">
+            <Link 
+              to="/" 
+              className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
+            >
+              Home
+            </Link>
+            <Link 
+              to="/bookings" 
+              className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
+            >
+              My Bookings
+            </Link>
+            <Link 
+              to="/status" 
+              className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
+            >
+              Train Status
+            </Link>
+            <Link 
+              to="/contact" 
+              className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
+            >
+              Contact
+            </Link>
 
-            {/* Login/Profile */}
+            {/* Login/Profile Section */}
             {!currentUser ? (
-              <Link to="/login" className="hover:text-blue-200 transition-colors font-medium">Login</Link>
+              <Link 
+                to="/login" 
+                className="bg-white text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-blue-100 transition-colors flex items-center space-x-2"
+              >
+                <User size={16} />
+                <span>Login</span>
+              </Link>
             ) : (
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button
                   onClick={toggleDropdown}
-                  className="flex items-center space-x-2 bg-white bg-opacity-20 p-2 rounded-full hover:bg-opacity-30 transition"
+                  className="flex items-center space-x-2 bg-white bg-opacity-20 px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200 border border-white border-opacity-30"
                 >
-                  <span>👤</span>
-                  <span>{currentUser.username}</span>
+                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <User size={16} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">{currentUser.username}</p>
+                    <p className="text-xs text-blue-200">{getRoleDisplay(currentUser.role)}</p>
+                  </div>
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-lg z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <p className="font-semibold">{currentUser.name}</p>
-                      <p className="text-sm text-gray-500">{currentUser.email}</p>
-                      <p className="text-sm text-gray-500">Role: {currentUser.role}</p>
+                  <div className="absolute right-0 mt-2 w-64 bg-white text-gray-800 rounded-lg shadow-xl z-50 border border-gray-200">
+                    {/* User Info */}
+                    <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white">
+                          <User size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">{currentUser.name || currentUser.username}</p>
+                          <p className="text-sm text-gray-600 truncate">{currentUser.email}</p>
+                          <div className="flex items-center space-x-1 mt-1">
+                            <Settings size={12} className="text-gray-400" />
+                            <span className="text-xs text-gray-500 font-medium">{getRoleDisplay(currentUser.role)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center justify-start space-x-2 px-4 py-2 hover:bg-gray-100"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Logout</span>
-                    </button>
+
+                    {/* Profile Actions */}
+                    <div className="p-2">
+                      <Link 
+                        to="/profile" 
+                        className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <User size={16} />
+                        <span>My Profile</span>
+                      </Link>
+                      <Link 
+                        to="/settings" 
+                        className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <Settings size={16} />
+                        <span>Settings</span>
+                      </Link>
+                    </div>
+
+                    {/* Logout Button */}
+                    <div className="p-2 border-t border-gray-200">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center justify-center space-x-2 w-full px-3 py-2 text-sm bg-red-50 text-red-700 hover:bg-red-100 rounded-md transition-colors font-medium"
+                      >
+                        <LogOut size={16} />
+                        <span>Logout</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -90,16 +176,23 @@ const Header = () => {
         </div>
 
         {/* Contact info bar */}
-        <div className="hidden md:flex py-3 text-sm border-t border-blue-700">
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-1">
-              <Phone size={14} />
-              <span>24/7 Helpline: 139</span>
+        <div className="hidden md:flex bg-blue-800 bg-opacity-50 py-2 text-sm">
+          <div className="max-w-6xl mx-auto px-4 w-full flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <Phone size={14} className="text-blue-200" />
+                <span className="text-blue-100">24/7 Helpline: 139</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Mail size={14} className="text-blue-200" />
+                <span className="text-blue-100">support@railbook.com</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-1">
-              <Mail size={14} />
-              <span>support@railwaybook.com</span>
-            </div>
+            {currentUser && (
+              <div className="text-blue-100 text-xs">
+                Logged in as <span className="font-semibold">{currentUser.username}</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -107,9 +200,16 @@ const Header = () => {
       {/* Mobile Sidebar */}
       {isSidebarOpen && (
         <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={toggleSidebar} />
-          <div className={`fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-blue-900 to-purple-900 text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="p-6">
+          {/* Overlay */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" 
+            onClick={toggleSidebar} 
+          />
+          
+          {/* Sidebar */}
+          <div className="fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-blue-900 to-purple-900 text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden">
+            <div className="p-6 h-full flex flex-col">
+              {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
                   <div className="bg-white bg-opacity-20 p-2 rounded-lg">
@@ -120,39 +220,139 @@ const Header = () => {
                     <p className="text-blue-200 text-xs">Your Journey, Our Priority</p>
                   </div>
                 </div>
-                <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
+                <button 
+                  onClick={toggleSidebar} 
+                  className="p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors"
+                >
                   <X size={20} />
                 </button>
               </div>
 
-              <nav className="space-y-4">
-                <Link to="/" onClick={toggleSidebar} className="block py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg">Home</Link>
-                <Link to="/bookings" onClick={toggleSidebar} className="block py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg">My Bookings</Link>
-                <Link to="/status" onClick={toggleSidebar} className="block py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg">Train Status</Link>
-                <Link to="/contact" onClick={toggleSidebar} className="block py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg">Contact</Link>
-
-                {!currentUser ? (
-                  <Link to="/login" onClick={toggleSidebar} className="block py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg">Login</Link>
-                ) : (
-                  <div className="relative">
-                    <button onClick={toggleDropdown} className="flex items-center space-x-2 py-3 px-4 rounded-lg hover:bg-white hover:bg-opacity-20">
-                      👤 {currentUser.username}
-                    </button>
-                    {isDropdownOpen && (
-                      <div className="mt-2 w-full bg-white text-gray-800 rounded-lg p-4">
-                        <p className="font-semibold">{currentUser.name}</p>
-                        <p className="text-sm text-gray-500">{currentUser.email}</p>
-                        <p className="text-sm text-gray-500">Role: {currentUser.role}</p>
-                        <button onClick={handleLogout} className="mt-2 w-full bg-red-500 text-white py-2 rounded-lg">Logout</button>
-                      </div>
-                    )}
+              {/* User Info Section */}
+              {currentUser && (
+                <div className="mb-6 p-4 bg-white bg-opacity-10 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                      <User size={18} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">{currentUser.name || currentUser.username}</p>
+                      <p className="text-blue-200 text-xs">{currentUser.email}</p>
+                      <p className="text-blue-200 text-xs font-medium">{getRoleDisplay(currentUser.role)}</p>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Navigation */}
+              <nav className="space-y-2 flex-1">
+                <Link 
+                  to="/" 
+                  onClick={toggleSidebar}
+                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                >
+                  <span>🏠</span>
+                  <span>Home</span>
+                </Link>
+                
+                <Link 
+                  to="/bookings" 
+                  onClick={toggleSidebar}
+                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                >
+                  <span>🎫</span>
+                  <span>My Bookings</span>
+                </Link>
+                
+                <Link 
+                  to="/status" 
+                  onClick={toggleSidebar}
+                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                >
+                  <span>🚆</span>
+                  <span>Train Status</span>
+                </Link>
+                
+                <Link 
+                  to="/contact" 
+                  onClick={toggleSidebar}
+                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                >
+                  <span>📞</span>
+                  <span>Contact</span>
+                </Link>
+
+                {currentUser ? (
+                  <>
+                    <Link 
+                      to="/profile" 
+                      onClick={toggleSidebar}
+                      className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                    >
+                      <User size={18} />
+                      <span>My Profile</span>
+                    </Link>
+                    
+                    <Link 
+                      to="/settings" 
+                      onClick={toggleSidebar}
+                      className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                    >
+                      <Settings size={18} />
+                      <span>Settings</span>
+                    </Link>
+                  </>
+                ) : null}
               </nav>
+
+              {/* Auth Section */}
+              <div className="pt-6 border-t border-white border-opacity-20">
+                {!currentUser ? (
+                  <Link 
+                    to="/login" 
+                    onClick={toggleSidebar}
+                    className="w-full bg-white text-blue-900 py-3 px-4 rounded-lg font-semibold hover:bg-blue-100 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <User size={18} />
+                    <span>Login to Account</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      toggleSidebar();
+                      handleLogout();
+                    }}
+                    className="w-full bg-red-500 bg-opacity-20 text-red-100 py-3 px-4 rounded-lg font-semibold hover:bg-red-600 hover:bg-opacity-30 transition-colors flex items-center justify-center space-x-2 border border-red-400 border-opacity-30"
+                  >
+                    <LogOut size={18} />
+                    <span>Logout</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Contact Info in Mobile */}
+              <div className="mt-6 pt-4 border-t border-white border-opacity-20">
+                <div className="space-y-2 text-sm text-blue-200">
+                  <div className="flex items-center space-x-2">
+                    <Phone size={14} />
+                    <span>24/7 Helpline: 139</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Mail size={14} />
+                    <span>support@railbook.com</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </>
       )}
+
+      {/* Close dropdown when clicking outside */}
+      <div 
+        className={`fixed inset-0 z-30 ${isDropdownOpen ? 'block' : 'hidden'}`}
+        onClick={() => setIsDropdownOpen(false)}
+      />
     </>
   );
 };

@@ -21,9 +21,9 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
       // Redirect based on role if already logged in
       if (user.role === 'TTE') navigate('/tte', { replace: true });
       else if (user.role === 'Passenger') navigate('/', { replace: true });
-      else if (user.role === 'Admin') navigate('/admin-dashboard', { replace: true });
+      else if (user.role === 'Admin') navigate('/admin', { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -31,6 +31,8 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
+    
     setIsLoading(true);
 
     try {
@@ -40,21 +42,32 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
       });
 
       if (res.data.success) {
-        const { role } = res.data.user;
+        const userData = res.data.user;
 
-        // Save user session
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        localStorage.setItem('role', role);
+        // Save user session with remember me option
+        if (formData.rememberMe) {
+          // Extended session for 30 days
+          const userWithExpiry = {
+            ...userData,
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          };
+          localStorage.setItem('user', JSON.stringify(userWithExpiry));
+        } else {
+          // Default session (browser session)
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        localStorage.setItem('role', userData.role);
 
-        alert(`Login successful as ${role}`);
+        alert(`Login successful as ${userData.role}`);
 
         // Role-based redirect
-        if (role === "Passenger") navigate('/', { replace: true });
-        else if (role === "TTE") navigate('/tte', { replace: true });
-        else if (role === "Admin") navigate('/admin-dashboard', { replace: true });
+        if (userData.role === "Passenger") navigate('/', { replace: true });
+        else if (userData.role === "TTE") navigate('/tte', { replace: true });
+        else if (userData.role === "Admin") navigate('/admin', { replace: true });
         else navigate('/', { replace: true });
       } else {
-        alert("Invalid user ❌");
+        alert("Invalid credentials ❌");
       }
     } catch (err) {
       alert(err.response?.data?.error || "Login failed ❌");
@@ -64,7 +77,7 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
   };
 
   return (
-    <div>
+    <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
       <div className="text-center mb-8">
         <h3 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h3>
         <p className="text-gray-600">Sign in to your account</p>
@@ -85,6 +98,7 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Enter your email"
               required
+              autoComplete="email"
             />
           </div>
         </div>
@@ -103,6 +117,7 @@ const SignIn = ({ onForgotPassword, onSignUp }) => {
               className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Enter your password"
               required
+              autoComplete="current-password"
             />
             <button
               type="button"

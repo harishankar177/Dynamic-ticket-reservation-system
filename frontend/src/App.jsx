@@ -10,16 +10,17 @@ import {
 import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 
 import Header from './components/Header';
-import SearchForm from './components/SearchForm';
-import TrainList from './components/TrainList';
-import PassengerDetails from './components/PassengerDetails';
-import Payment from './components/Payment';
-import BookingConfirmation from './components/BookingConfirmation';
+import SearchForm from './components/pages/SearchForm';
+import TrainList from './components/pages/TrainList';
+import PassengerDetails from './components/pages/PassengerDetails';
+import Payment from './components/pages/Payment';
+import BookingConfirmation from './components/pages/BookingConfirmation';
 import Auth from './components/login/Auth';
 import SignUp from './components/login/SignUp';
 import ForgotPassword from './components/login/ForgotPassword';
 import TrainStatus from './components/Trainstatus/TrainStatus';
 import TTE from './components/TTE/TTE';
+import Admin from './components/Admin/Admin';
 
 // =======================
 // ProtectedRoute Component
@@ -27,9 +28,59 @@ import TTE from './components/TTE/TTE';
 const ProtectedRoute = ({ children, allowedRole }) => {
   const user = JSON.parse(localStorage.getItem('user'));
 
-  if (!user) return <Navigate to="/login" replace />; // not logged in
-  if (allowedRole && user.role !== allowedRole) return <Navigate to="/login" replace />; // wrong role
+  if (!user) return <Navigate to="/login" replace />;
+  if (allowedRole && user.role !== allowedRole) return <Navigate to="/login" replace />;
   return children;
+};
+
+// =======================
+// Role-based Layout Wrapper
+// =======================
+const RoleBasedLayout = ({ children }) => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  const location = useLocation();
+  
+  // Don't show header for auth pages and specific roles
+  const isAuthPage = ['/login', '/signup', '/forgot'].includes(location.pathname);
+  
+  if (isAuthPage) {
+    // No header for login, signup, forgot password pages
+    return (
+      <div className="min-h-screen w-full m-0 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        {children}
+      </div>
+    );
+  }
+  
+  // Don't show header for TTE and Admin roles
+  if (user && (user.role === 'TTE' || user.role === 'Admin')) {
+    return (
+      <div className="min-h-screen w-full m-0 bg-gray-50">
+        {children}
+      </div>
+    );
+  }
+  
+  // For passengers or logged out users on non-auth pages, show header
+  return (
+    <div className="min-h-screen w-full m-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
+      <Header />
+      {children}
+    </div>
+  );
+};
+
+// =======================
+// Role-based Home Redirect
+// =======================
+const HomeRedirect = () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  if (user.role === 'Admin') return <Navigate to="/admin" replace />;
+  if (user.role === 'TTE') return <Navigate to="/tte" replace />;
+  return <SearchForm onSearch={() => {}} />;
 };
 
 // =======================
@@ -43,19 +94,30 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const user = JSON.parse(localStorage.getItem('user'));
   const isLoginPage = location.pathname === '/login';
 
-  // Auto-redirect TTE if logged in
+  // =======================
+  // Session persistence on refresh
+  // =======================
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user) {
-      if (user.role === 'TTE' && location.pathname === '/login') {
-        navigate('/tte-dashboard', { replace: true });
-      }
-    }
-  }, [location.pathname]);
+    // Session is automatically maintained via localStorage
+  }, []);
 
-  // Booking steps
+  // =======================
+  // Auto redirect logged-in users away from login page
+  // =======================
+  useEffect(() => {
+    if (user && isLoginPage) {
+      if (user.role === 'Admin') navigate('/admin', { replace: true });
+      else if (user.role === 'TTE') navigate('/tte', { replace: true });
+      else navigate('/', { replace: true });
+    }
+  }, [location.pathname, user, navigate]);
+
+  // =======================
+  // Booking steps for Passenger
+  // =======================
   const steps = [
     { icon: Train, title: 'Search Trains', path: '/' },
     { icon: Train, title: 'Select Train', path: '/trains' },
@@ -66,9 +128,15 @@ function AppContent() {
 
   const bookingStepsPaths = ['/', '/trains', '/passengers', '/payment', '/confirmation'];
   const currentStep = steps.findIndex(step => step.path === location.pathname);
-  const showProgress = bookingStepsPaths.includes(location.pathname);
+  
+  // Only show progress for logged-in passengers on booking pages
+  const showProgress = bookingStepsPaths.includes(location.pathname) && 
+                      user && 
+                      user.role === 'Passenger';
 
-  // Handlers
+  // =======================
+  // Booking Handlers
+  // =======================
   const handleSearch = (data) => { setSearchData(data); navigate('/trains'); };
   const handleTrainSelect = (train) => { setSelectedTrain(train); navigate('/passengers'); };
   const handlePassengerDetails = (passengerData) => { setPassengers(passengerData); navigate('/payment'); };
@@ -83,14 +151,18 @@ function AppContent() {
     setBookingData(booking);
     navigate('/confirmation');
   };
-  const handleNewBooking = () => { setSearchData(null); setSelectedTrain(null); setPassengers([]); setBookingData(null); navigate('/'); };
+  const handleNewBooking = () => {
+    setSearchData(null);
+    setSelectedTrain(null);
+    setPassengers([]);
+    setBookingData(null);
+    navigate('/');
+  };
 
   return (
-    <div className="min-h-screen w-full m-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
-      {!isLoginPage && <Header />}
-
-      {/* Booking Progress Steps */}
-      {showProgress && !isLoginPage && (
+    <RoleBasedLayout>
+      {/* Booking Progress Steps - Only for passengers on booking pages */}
+      {showProgress && (
         <div className="w-full m-0">
           <div className="flex items-center justify-between mb-8 bg-white rounded-lg shadow-sm p-6 max-w-full">
             {steps.map((step, index) => {
@@ -114,29 +186,58 @@ function AppContent() {
       {/* Routes */}
       <div className="flex-1 w-full m-0">
         <Routes>
-          {/* Passenger Flow */}
-          <Route path="/" element={<SearchForm onSearch={handleSearch} />} />
-          <Route path="/trains" element={searchData ? <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} /> : <Navigate to="/" />} />
-          <Route path="/passengers" element={selectedTrain ? <PassengerDetails passengerCount={searchData?.passengers} onSubmit={handlePassengerDetails} /> : <Navigate to="/trains" />} />
-          <Route path="/payment" element={passengers.length ? <Payment totalAmount={selectedTrain?.price * (searchData?.passengers || 1)} onPayment={handlePayment} /> : <Navigate to="/passengers" />} />
-          <Route path="/confirmation" element={bookingData ? <BookingConfirmation bookingData={bookingData} onNewBooking={handleNewBooking} /> : <Navigate to="/" />} />
+          {/* Role-based home */}
+          <Route path="/" element={<HomeRedirect />} />
 
-          {/* Auth Pages */}
+          {/* Passenger Flow */}
+          <Route path="/trains" element={
+            <ProtectedRoute allowedRole="Passenger">
+              {searchData ? <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} /> : <Navigate to="/" />}
+            </ProtectedRoute>
+          } />
+          <Route path="/passengers" element={
+            <ProtectedRoute allowedRole="Passenger">
+              {selectedTrain ? <PassengerDetails passengerCount={searchData?.passengers} onSubmit={handlePassengerDetails} /> : <Navigate to="/trains" />}
+            </ProtectedRoute>
+          } />
+          <Route path="/payment" element={
+            <ProtectedRoute allowedRole="Passenger">
+              {passengers.length ? <Payment totalAmount={selectedTrain?.price * (searchData?.passengers || 1)} onPayment={handlePayment} /> : <Navigate to="/passengers" />}
+            </ProtectedRoute>
+          } />
+          <Route path="/confirmation" element={
+            <ProtectedRoute allowedRole="Passenger">
+              {bookingData ? <BookingConfirmation bookingData={bookingData} onNewBooking={handleNewBooking} /> : <Navigate to="/" />}
+            </ProtectedRoute>
+          } />
+
+          {/* Auth Pages - No Header will be shown for these */}
           <Route path="/login" element={<Auth />} />
-          <Route path="/signup" element={<div className="max-w-md mx-auto mt-12 bg-white rounded-2xl p-8"><SignUp onSignIn={() => navigate('/login')} /></div>} />
-          <Route path="/forgot" element={<div className="max-w-md mx-auto mt-12 bg-white rounded-2xl p-8"><ForgotPassword onBack={() => navigate('/login')} /></div>} />
+          <Route path="/signup" element={<SignUp onSignIn={() => navigate('/login')} />} />
+          <Route path="/forgot" element={<ForgotPassword onBack={() => navigate('/login')} />} />
+
+          {/* Train Status */}
           <Route path="/status" element={<TrainStatus />} />
 
-          {/* TTE Dashboard */}
-          
-         <Route path="/tte/*" element={<ProtectedRoute allowedRole="TTE"><TTE /></ProtectedRoute>} />
+          {/* TTE Dashboard - No Header */}
+          <Route path="/tte/*" element={
+            <ProtectedRoute allowedRole="TTE">
+              <TTE />
+            </ProtectedRoute>
+          } />
 
+          {/* Admin Dashboard - No Header */}
+          <Route path="/admin/*" element={
+            <ProtectedRoute allowedRole="Admin">
+              <Admin />
+            </ProtectedRoute>
+          } />
 
           {/* Default Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-    </div>
+    </RoleBasedLayout>
   );
 }
 

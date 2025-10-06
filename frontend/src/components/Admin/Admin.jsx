@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import TrainManagement from './components/TrainManagement';
-import UserManagement from './components/UserManagement';
-import PassengerDetails from './components/PassengerDetails';
-import TTEDetails from './components/TTEDetails';
-import PlaceholderSection from './components/PlaceholderSection';
+import Sidebar from '../Admin/Sidebar';
+import Dashboard from '../Admin/pages/Dashboard';
+import TrainManagement from '../Admin/pages/TrainManagement';
+import UserManagement from '../Admin/pages/UserManagement';
+import PassengerDetails from '../Admin/pages/PassengerDetails';
+import TTEDetails from '../Admin/pages/TTEDetails';
+import PlaceholderSection from '../Admin/pages/PlaceholderSection';
+
 import {
   Ticket,
   DollarSign,
