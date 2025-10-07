@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { TTEProvider } from './context/TTEContext';
 import Layout from './Layout';
 import Dashboard from './pages/Dashboard';
@@ -12,52 +11,45 @@ import Incidents from './pages/Incidents';
 import JourneyReport from './pages/JourneyReport';
 
 const TTE = () => {
-  const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
-
-  // ===== SESSION CHECK =====
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || user.role !== 'TTE') {
-      // If not logged in or not TTE, redirect to login
-      navigate('/login', { replace: true });
-    }
-  }, [navigate]);
-
-  // ===== LOGOUT HANDLER =====
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('role');
-    navigate('/login', { replace: true });
-  };
 
   // ===== RENDER PAGES =====
   const renderPage = () => {
-    switch (activePage) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'tickets':
-        return <TicketChecking />;
-      case 'coach':
-        return <CoachSupervision />;
-      case 'assistance':
-        return <PassengerAssistance />;
-      case 'fines':
-        return <FineCollection />;
-      case 'seats':
-        return <SeatAvailability />;
-      case 'incidents':
-        return <Incidents />;
-      case 'report':
-        return <JourneyReport />;
-      default:
-        return <Dashboard />;
+    try {
+      switch (activePage) {
+        case 'dashboard':
+          return <Dashboard />;
+        case 'tickets':
+          return <TicketChecking />;
+        case 'coach':
+          return <CoachSupervision />;
+        case 'assistance':
+          return <PassengerAssistance />;
+        case 'fines':
+          return <FineCollection />;
+        case 'seats':
+          return <SeatAvailability />;
+        case 'incidents':
+          return <Incidents />;
+        case 'report':
+          return <JourneyReport />;
+        default:
+          return <Dashboard />;
+      }
+    } catch (error) {
+      console.error('Error rendering page:', error);
+      return (
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Page</h2>
+          <p className="text-gray-600">There was an error loading the {activePage} page. Please try again.</p>
+        </div>
+      );
     }
   };
 
   return (
     <TTEProvider>
-      <Layout activePage={activePage} onNavigate={setActivePage} onLogout={handleLogout}>
+      <Layout activePage={activePage} onNavigate={setActivePage}>
         {renderPage()}
       </Layout>
     </TTEProvider>

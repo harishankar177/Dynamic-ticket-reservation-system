@@ -23,13 +23,27 @@ import TTE from './components/TTE/TTE';
 import Admin from './components/Admin/Admin';
 
 // =======================
-// ProtectedRoute Component (case-insensitive)
+// ProtectedRoute Component
 // =======================
 const ProtectedRoute = ({ children, allowedRole }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user) return <Navigate to="/login" replace />;
-  if (allowedRole && user.role.toLowerCase() !== allowedRole.toLowerCase())
+  const getUserFromStorage = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  };
+
+  const user = getUserFromStorage();
+  
+  if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  
+  if (allowedRole && user.role.toLowerCase() !== allowedRole.toLowerCase()) {
+    return <Navigate to="/login" replace />;
+  }
+  
   return children;
 };
 
@@ -37,10 +51,20 @@ const ProtectedRoute = ({ children, allowedRole }) => {
 // Role-based Layout Wrapper
 // =======================
 const RoleBasedLayout = ({ children, showProgress, progressComponent }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const getUserFromStorage = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  };
+
+  const user = getUserFromStorage();
   const location = useLocation();
   
   const isAuthPage = ['/login', '/signup', '/forgot'].includes(location.pathname);
+  
+  // Auth pages layout
   if (isAuthPage) {
     return (
       <div className="min-h-screen w-full m-0 bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -49,7 +73,8 @@ const RoleBasedLayout = ({ children, showProgress, progressComponent }) => {
     );
   }
 
-  if (user && ['tte','admin'].includes(user.role.toLowerCase())) {
+  // TTE and Admin layout (no header)
+  if (user && ['tte', 'admin'].includes(user.role.toLowerCase())) {
     return (
       <div className="min-h-screen w-full m-0 bg-gray-50">
         {children}
@@ -57,6 +82,7 @@ const RoleBasedLayout = ({ children, showProgress, progressComponent }) => {
     );
   }
 
+  // Passenger layout (with header)
   return (
     <div className="min-h-screen w-full m-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
       <Header />
@@ -70,10 +96,22 @@ const RoleBasedLayout = ({ children, showProgress, progressComponent }) => {
 // Role-based Home Redirect
 // =======================
 const HomeRedirect = ({ onSearch }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user) return <Navigate to="/login" replace />;
+  const getUserFromStorage = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  };
+
+  const user = getUserFromStorage();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   const role = user.role.toLowerCase();
+  
   if (role === 'admin') return <Navigate to="/admin" replace />;
   if (role === 'tte') return <Navigate to="/tte" replace />;
   if (role === 'passenger') return <SearchForm onSearch={onSearch} />;
@@ -128,18 +166,28 @@ function AppContent() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem('user'));
+  
+  const getUserFromStorage = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  };
+
+  const user = getUserFromStorage();
   const role = user?.role?.toLowerCase();
   const isLoginPage = location.pathname === '/login';
 
   // Redirect logged-in users from login page
   useEffect(() => {
     if (user && isLoginPage) {
-      if (role === 'admin') navigate('/admin', { replace: true });
-      else if (role === 'tte') navigate('/tte', { replace: true });
+      const userRole = user.role.toLowerCase();
+      if (userRole === 'admin') navigate('/admin', { replace: true });
+      else if (userRole === 'tte') navigate('/tte', { replace: true });
       else navigate('/', { replace: true });
     }
-  }, [location.pathname, user, navigate, role, isLoginPage]);
+  }, [location.pathname, user, navigate]);
 
   // Passenger booking steps
   const steps = [
@@ -149,6 +197,7 @@ function AppContent() {
     { icon: CreditCard, title: 'Payment', path: '/payment' },
     { icon: CheckCircle, title: 'Confirmation', path: '/confirmation' },
   ];
+  
   const bookingStepsPaths = ['/', '/trains', '/passengers', '/payment', '/confirmation'];
   const currentStep = bookingStepsPaths.indexOf(location.pathname);
   const showProgress = bookingStepsPaths.includes(location.pathname) && role === 'passenger';
@@ -197,10 +246,10 @@ function AppContent() {
     <RoleBasedLayout showProgress={showProgress} progressComponent={progressComponent}>
       <div className="flex-1 w-full">
         <Routes>
-          {/* Passenger Home */}
+          {/* Home - Auto redirect based on role */}
           <Route path="/" element={<HomeRedirect onSearch={handleSearch} />} />
 
-          {/* Passenger Flow */}
+          {/* Passenger Booking Flow */}
           <Route 
             path="/trains" 
             element={
@@ -245,13 +294,19 @@ function AppContent() {
             } 
           />
 
-          {/* Other routes unchanged */}
+          {/* Auth Routes */}
           <Route path="/login" element={<Auth />} />
           <Route path="/signup" element={<SignUp onSignIn={() => navigate('/login')} />} />
           <Route path="/forgot" element={<ForgotPassword onBack={() => navigate('/login')} />} />
+
+          {/* Other Routes */}
           <Route path="/status" element={<TrainStatus />} />
+          
+          {/* Role-based Routes */}
           <Route path="/tte/*" element={<ProtectedRoute allowedRole="TTE"><TTE /></ProtectedRoute>} />
           <Route path="/admin/*" element={<ProtectedRoute allowedRole="Admin"><Admin /></ProtectedRoute>} />
+          
+          {/* Catch all route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
@@ -260,7 +315,7 @@ function AppContent() {
 }
 
 // =======================
-// App
+// Main App Component
 // =======================
 function App() {
   return (

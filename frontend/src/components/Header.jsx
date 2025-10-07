@@ -9,9 +9,18 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load user info from localStorage on mount and on route change
+  // Safe localStorage getter
+  const getUserFromStorage = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  };
+
+  // Load user info from localStorage
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = getUserFromStorage();
     setCurrentUser(user);
   }, [location.pathname]);
 
@@ -28,17 +37,19 @@ const Header = () => {
   };
 
   // Don't show header for TTE and Admin roles
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (user && (user.role === 'TTE' || user.role === 'Admin')) {
+  const user = getUserFromStorage();
+  if (user && (user.role.toLowerCase() === 'tte' || user.role.toLowerCase() === 'admin')) {
     return null;
   }
 
   // Get role display name with emoji
   const getRoleDisplay = (role) => {
-    switch (role) {
-      case 'Passenger': return '🚆 Passenger';
-      case 'TTE': return '🎫 TTE';
-      case 'Admin': return '⚙️ Admin';
+    if (!role) return '';
+    
+    switch (role.toLowerCase()) {
+      case 'passenger': return '🚆 Passenger';
+      case 'tte': return '🎫 TTE';
+      case 'admin': return '⚙️ Admin';
       default: return role;
     }
   };
@@ -80,7 +91,6 @@ const Header = () => {
             >
               Train Status
             </Link>
-           
 
             {/* Login/Profile Section */}
             {!currentUser ? (
@@ -101,7 +111,7 @@ const Header = () => {
                     <User size={16} />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-medium">{currentUser.username}</p>
+                    <p className="text-sm font-medium">{currentUser.username || currentUser.name || 'User'}</p>
                     <p className="text-xs text-blue-200">{getRoleDisplay(currentUser.role)}</p>
                   </div>
                 </button>
@@ -115,8 +125,8 @@ const Header = () => {
                           <User size={20} />
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{currentUser.name || currentUser.username}</p>
-                          <p className="text-sm text-gray-600 truncate">{currentUser.email}</p>
+                          <p className="font-semibold text-gray-900">{currentUser.name || currentUser.username || 'User'}</p>
+                          <p className="text-sm text-gray-600 truncate">{currentUser.email || 'No email'}</p>
                           <div className="flex items-center space-x-1 mt-1">
                             <Settings size={12} className="text-gray-400" />
                             <span className="text-xs text-gray-500 font-medium">{getRoleDisplay(currentUser.role)}</span>
@@ -185,7 +195,7 @@ const Header = () => {
             </div>
             {currentUser && (
               <div className="text-blue-100 text-xs">
-                Logged in as <span className="font-semibold">{currentUser.username}</span>
+                Logged in as <span className="font-semibold">{currentUser.username || currentUser.name}</span>
               </div>
             )}
           </div>
@@ -231,8 +241,8 @@ const Header = () => {
                       <User size={18} />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{currentUser.name || currentUser.username}</p>
-                      <p className="text-blue-200 text-xs">{currentUser.email}</p>
+                      <p className="font-semibold text-sm">{currentUser.name || currentUser.username || 'User'}</p>
+                      <p className="text-blue-200 text-xs">{currentUser.email || 'No email'}</p>
                       <p className="text-blue-200 text-xs font-medium">{getRoleDisplay(currentUser.role)}</p>
                     </div>
                   </div>
@@ -266,15 +276,6 @@ const Header = () => {
                 >
                   <span>🚆</span>
                   <span>Train Status</span>
-                </Link>
-                
-                <Link 
-                  to="/contact" 
-                  onClick={toggleSidebar}
-                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
-                >
-                  <span>📞</span>
-                  <span>Contact</span>
                 </Link>
 
                 {currentUser ? (
