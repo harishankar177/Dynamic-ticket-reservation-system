@@ -80,12 +80,7 @@ const Header = () => {
             >
               Train Status
             </Link>
-            <Link 
-              to="/contact" 
-              className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
-            >
-              Contact
-            </Link>
+           
 
             {/* Login/Profile Section */}
             {!currentUser ? (
