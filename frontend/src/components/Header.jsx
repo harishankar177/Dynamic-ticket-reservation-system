@@ -111,10 +111,16 @@ const Header = () => {
                     <User size={16} />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-medium">{currentUser.username || currentUser.name || 'User'}</p>
-                    <p className="text-xs text-blue-200">{getRoleDisplay(currentUser.role)}</p>
+                    {/* ✅ Added Welcome message */}
+                    <p className="text-sm font-medium">
+                      Welcome, {currentUser.username || currentUser.name || 'User'}
+                    </p>
+                    <p className="text-xs text-blue-200">
+                      {getRoleDisplay(currentUser.role)}
+                    </p>
                   </div>
                 </button>
+
 
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white text-gray-800 rounded-lg shadow-xl z-50 border border-gray-200">
@@ -144,14 +150,6 @@ const Header = () => {
                       >
                         <User size={16} />
                         <span>My Profile</span>
-                      </Link>
-                      <Link 
-                        to="/settings" 
-                        className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <Settings size={16} />
-                        <span>Settings</span>
                       </Link>
                     </div>
 
@@ -193,11 +191,6 @@ const Header = () => {
                 <span className="text-blue-100">support@railbook.com</span>
               </div>
             </div>
-            {currentUser && (
-              <div className="text-blue-100 text-xs">
-                Logged in as <span className="font-semibold">{currentUser.username || currentUser.name}</span>
-              </div>
-            )}
           </div>
         </div>
       </header>
@@ -259,16 +252,14 @@ const Header = () => {
                   <span>🏠</span>
                   <span>Home</span>
                 </Link>
-                
+              
                 <Link 
                   to="/bookings" 
-                  onClick={toggleSidebar}
-                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                  className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
                 >
-                  <span>🎫</span>
-                  <span>My Bookings</span>
+                  My Bookings
                 </Link>
-                
+
                 <Link 
                   to="/status" 
                   onClick={toggleSidebar}

@@ -12,13 +12,16 @@ import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 import Header from './components/Header';
 import SearchForm from './components/pages/SearchForm';
 import TrainList from './components/pages/TrainList';
+import PNRStatus from './components/pages/PNRStatus';
+import TrainLiveStatus from './components/pages/TrainLiveStatus';
 import PassengerDetails from './components/pages/PassengerDetails';
+import MyBookings from './components/pages/MyBookings';
 import Payment from './components/pages/Payment';
 import BookingConfirmation from './components/pages/BookingConfirmation';
 import Auth from './components/login/Auth';
 import SignUp from './components/login/SignUp';
 import ForgotPassword from './components/login/ForgotPassword';
-import TrainStatus from './components/Trainstatus/TrainStatus';
+import TrainStatus from './components/pages/TrainStatus';
 import TTE from './components/TTE/TTE';
 import Admin from './components/Admin/Admin';
 
@@ -120,31 +123,49 @@ const HomeRedirect = ({ onSearch }) => {
 };
 
 // =======================
-// ProgressSteps Component
+// ProgressSteps Component (Updated)
 // =======================
 const ProgressSteps = ({ currentStep, steps }) => {
   return (
     <div className="w-full bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between">
+        {/* ✅ Mobile scroll, desktop spaced */}
+        <div className="flex items-center justify-center md:justify-between overflow-x-auto scrollbar-hide space-x-6 md:space-x-0">
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isActive = index === currentStep;
             const isCompleted = index < currentStep;
+
             return (
-              <div key={index} className="flex items-center flex-1">
+              <div
+                key={index}
+                className="flex items-center flex-shrink-0 md:flex-1 min-w-[120px] md:min-w-0"
+              >
                 <div className="flex items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                    isCompleted ? 'bg-green-500 text-white' : isActive ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'
-                  }`}>
+                  <div
+                    className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold
+                      ${isCompleted ? 'bg-green-500 text-white' 
+                        : isActive ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-200 text-gray-400'}`}
+                  >
                     <Icon size={20} />
                   </div>
-                  <span className={`ml-3 text-sm font-medium ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
+                  <span
+                    className={`ml-3 text-xs md:text-sm font-medium whitespace-nowrap 
+                      ${isActive ? 'text-blue-600' 
+                        : isCompleted ? 'text-green-600' 
+                        : 'text-gray-500'}`}
+                  >
                     {step.title}
                   </span>
                 </div>
+
+                {/* Connector line */}
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-1 mx-4 ${isCompleted ? 'bg-green-500' : 'bg-gray-200'}`} />
+                  <div
+                    className={`hidden md:block flex-1 h-1 mx-4 rounded 
+                      ${isCompleted ? 'bg-green-500' : 'bg-gray-200'}`}
+                  />
                 )}
               </div>
             );
@@ -293,6 +314,19 @@ function AppContent() {
               </ProtectedRoute>
             } 
           />
+
+            <Route 
+              path="/bookings" 
+              element={
+                <ProtectedRoute allowedRole="Passenger">
+                  <MyBookings />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route path="/pnr-status" element={<PNRStatus />} />
+            <Route path="/train-status" element={<TrainLiveStatus />} />
+
 
           {/* Auth Routes */}
           <Route path="/login" element={<Auth />} />

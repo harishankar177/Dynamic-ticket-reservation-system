@@ -3,7 +3,7 @@ import { User, Phone, Calendar, Train } from 'lucide-react';
 
 const PassengerDetails = ({
   passengerCount = 1,
-  selectedTrains = [], // Removed selectedClass
+  selectedTrains = [],
   totalAmount = 0,
   onSubmit
 }) => {
@@ -23,19 +23,57 @@ const PassengerDetails = ({
     setPassengers(updated);
   };
 
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email) && email.length <= 50;
+  };
+
+  const validatePhone = (phone) => {
+    const regex = /^\d{10}$/;
+    return regex.test(phone);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    for (let i = 0; i < passengers.length; i++) {
+      const p = passengers[i];
+      if (!p.name || !p.age || !p.gender) {
+        alert(`Please fill Name, Age, and Gender for passenger ${i + 1}`);
+        return;
+      }
+
+      if (i === 0) {
+        // First passenger: all fields mandatory
+        if (!p.email || !validateEmail(p.email)) {
+          alert('Please enter a valid email (max 50 chars) for the first passenger');
+          return;
+        }
+        if (!p.phone || !validatePhone(p.phone)) {
+          alert('Please enter a valid 10-digit phone number for the first passenger');
+          return;
+        }
+      } else {
+        // Other passengers: optional phone/email
+        if (p.phone && !validatePhone(p.phone)) {
+          alert(`Phone number for passenger ${i + 1} must be exactly 10 digits`);
+          return;
+        }
+        if (p.email && !validateEmail(p.email)) {
+          alert(`Email for passenger ${i + 1} is not valid or too long (max 50 chars)`);
+          return;
+        }
+      }
+    }
+
     onSubmit(passengers);
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      {/* Header */}
       <h2 className="text-2xl font-semibold mb-2">Passenger Details</h2>
       <p className="text-gray-500 mb-6">Please provide details for all passengers</p>
 
-      {/* Booking Summary */}
-      <div className="bg-purple-50 p-4 rounded-lg mb-6 flex justify-between items-center">
+      <div className="bg-purple-50 p-4 rounded-lg mb-6 flex flex-col md:flex-row justify-between items-start md:items-center space-y-2 md:space-y-0">
         <div>
           <p className="text-gray-500 text-sm">Selected Trains</p>
           <span className="bg-white px-2 py-1 rounded flex items-center space-x-1">
@@ -49,7 +87,6 @@ const PassengerDetails = ({
         </div>
       </div>
 
-      {/* Passenger Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {passengers.map((p, index) => (
           <div key={index} className="p-6 border rounded-lg space-y-4">
@@ -108,20 +145,25 @@ const PassengerDetails = ({
 
             {/* Email */}
             <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
-              <label className="w-full md:w-1/4 text-gray-600">Email Address *</label>
+              <label className="w-full md:w-1/4 text-gray-600">
+                Email {index === 0 ? '*' : '(Optional)'}
+              </label>
               <input
                 type="email"
                 placeholder="Enter email address"
                 value={p.email}
                 onChange={(e) => handleChange(index, 'email', e.target.value)}
                 className="flex-1 p-2 border rounded w-full"
-                required
+                maxLength={50}
+                required={index === 0}
               />
             </div>
 
             {/* Phone */}
             <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
-              <label className="w-full md:w-1/4 text-gray-600">Phone Number *</label>
+              <label className="w-full md:w-1/4 text-gray-600">
+                Phone {index === 0 ? '*' : '(Optional)'}
+              </label>
               <div className="flex-1 flex items-center space-x-2">
                 <Phone size={18} />
                 <input
@@ -130,7 +172,8 @@ const PassengerDetails = ({
                   value={p.phone}
                   onChange={(e) => handleChange(index, 'phone', e.target.value)}
                   className="flex-1 p-2 border rounded w-full"
-                  required
+                  maxLength={10}
+                  required={index === 0}
                 />
               </div>
             </div>
