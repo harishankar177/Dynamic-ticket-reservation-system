@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Users,
-  Brain as Train,
+  Train,
   Ticket,
   DollarSign,
   TrendingUp,

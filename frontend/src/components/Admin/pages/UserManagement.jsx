@@ -1,76 +1,104 @@
-import React, { useState } from 'react';
-import { Plus, Search, CreditCard as Edit2, Trash2, UserCheck, UserX, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Plus, Search, CreditCard as Edit2, Trash2, UserCheck, UserX, X } from "lucide-react";
+import axios from "axios";
+
+
+const API_URL = "http://localhost:3000/api/users"; // Backend endpoint
 
 export default function UserManagement() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
-  const [users, setUsers] = useState([
-    { id: 1, name: 'Rajesh Kumar', email: 'rajesh@example.com', phone: '+91 98765 43210', role: 'passenger', isActive: true, joinDate: '2024-01-15' },
-    { id: 2, name: 'Priya Sharma', email: 'priya@example.com', phone: '+91 98765 43211', role: 'passenger', isActive: true, joinDate: '2024-02-20' },
-    { id: 3, name: 'Amit Patel', email: 'amit@example.com', phone: '+91 98765 43212', role: 'tte', isActive: true, joinDate: '2023-11-10' },
-    { id: 4, name: 'Sneha Gupta', email: 'sneha@example.com', phone: '+91 98765 43213', role: 'tte', isActive: true, joinDate: '2023-12-05' },
-    { id: 5, name: 'Vikram Singh', email: 'vikram@example.com', phone: '+91 98765 43214', role: 'passenger', isActive: false, joinDate: '2024-03-12' },
-  ]);
-
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
+  const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
   const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    role: 'passenger',
+    name: "",
+    email: "",
+    phone: "",
+    role: "passenger",
     isActive: true,
-    joinDate: new Date().toISOString().split('T')[0],
+    joinDate: new Date().toISOString().split("T")[0],
   });
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.phone.includes(searchTerm);
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesRole;
-  });
-
-  const handleAddOrEditUser = (e) => {
-    e.preventDefault();
-    if (editUserId) {
-      // Update existing user
-      setUsers(users.map(u => u.id === editUserId ? { ...u, ...newUser } : u));
-    } else {
-      // Add new user
-      setUsers([...users, { id: users.length + 1, ...newUser }]);
+  // Fetch users from Railbook DB
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get(API_URL);
+      setUsers(res.data);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
     }
-    resetForm();
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Add or edit user
+  const handleAddOrEditUser = async (e) => {
+    e.preventDefault();
+    try {
+      if (editUserId) {
+        // Update
+        const res = await axios.put(`${API_URL}/${editUserId}`, newUser);
+        setUsers(users.map(u => u._id === editUserId ? res.data : u));
+      } else {
+        // Add
+        const res = await axios.post(API_URL, newUser);
+        setUsers([res.data, ...users]);
+      }
+      resetForm();
+    } catch (err) {
+      console.error("Error saving user:", err);
+    }
   };
 
   const handleEditClick = (user) => {
-    setEditUserId(user.id);
+    setEditUserId(user._id);
     setNewUser({ ...user });
     setIsModalOpen(true);
   };
 
-  const handleToggleStatus = (id) => {
-    setUsers(users.map(user =>
-      user.id === id ? { ...user, isActive: !user.isActive } : user
-    ));
+  const handleToggleStatus = async (user) => {
+    try {
+      const updatedUser = { ...user, isActive: !user.isActive };
+      const res = await axios.put(`${API_URL}/${user._id}`, updatedUser);
+      setUsers(users.map(u => u._id === user._id ? res.data : u));
+    } catch (err) {
+      console.error("Error toggling status:", err);
+    }
   };
 
-  const handleDelete = (id) => {
-    setUsers(users.filter(user => user.id !== id));
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      setUsers(users.filter(u => u._id !== id));
+    } catch (err) {
+      console.error("Error deleting user:", err);
+    }
   };
 
   const resetForm = () => {
     setNewUser({
-      name: '',
-      email: '',
-      phone: '',
-      role: 'passenger',
+      name: "",
+      email: "",
+      phone: "",
+      role: "passenger",
       isActive: true,
-      joinDate: new Date().toISOString().split('T')[0],
+      joinDate: new Date().toISOString().split("T")[0],
     });
     setEditUserId(null);
     setIsModalOpen(false);
   };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone.includes(searchTerm);
+    const matchesRole = filterRole === "all" || user.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
 
   return (
     <div className="space-y-6">
@@ -130,24 +158,30 @@ export default function UserManagement() {
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                <tr key={user._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="py-3 px-4 text-sm font-medium text-slate-800">{user.name}</td>
                   <td className="py-3 px-4 text-sm text-slate-700">{user.email}</td>
                   <td className="py-3 px-4 text-sm text-slate-700">{user.phone}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin' ? 'bg-violet-100 text-violet-700' :
-                      user.role === 'tte' ? 'bg-blue-100 text-blue-700' :
-                      'bg-slate-100 text-slate-700'
-                    }`}>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        user.role === "admin"
+                          ? "bg-violet-100 text-violet-700"
+                          : user.role === "tte"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
                       {user.role.toUpperCase()}
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {user.isActive ? 'Active' : 'Inactive'}
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {user.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-700">{user.joinDate}</td>
@@ -161,14 +195,18 @@ export default function UserManagement() {
                         <Edit2 size={16} className="text-slate-600" />
                       </button>
                       <button
-                        onClick={() => handleToggleStatus(user.id)}
+                        onClick={() => handleToggleStatus(user)}
                         className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
-                        title={user.isActive ? 'Deactivate' : 'Activate'}
+                        title={user.isActive ? "Deactivate" : "Activate"}
                       >
-                        {user.isActive ? <UserX size={16} className="text-amber-600" /> : <UserCheck size={16} className="text-green-600" />}
+                        {user.isActive ? (
+                          <UserX size={16} className="text-amber-600" />
+                        ) : (
+                          <UserCheck size={16} className="text-green-600" />
+                        )}
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user._id)}
                         className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                         title="Delete"
                       >
@@ -194,7 +232,7 @@ export default function UserManagement() {
               <X size={20} />
             </button>
             <h3 className="text-xl font-bold text-slate-800 mb-4">
-              {editUserId ? 'Edit User' : 'Add New User'}
+              {editUserId ? "Edit User" : "Add New User"}
             </h3>
             <form onSubmit={handleAddOrEditUser} className="space-y-4">
               <input
@@ -231,8 +269,10 @@ export default function UserManagement() {
                 <option value="admin">Admin</option>
               </select>
               <select
-                value={newUser.isActive ? 'active' : 'inactive'}
-                onChange={(e) => setNewUser({ ...newUser, isActive: e.target.value === 'active' })}
+                value={newUser.isActive ? "active" : "inactive"}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, isActive: e.target.value === "active" })
+                }
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="active">Active</option>
@@ -256,7 +296,7 @@ export default function UserManagement() {
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
                 >
-                  {editUserId ? 'Save Changes' : 'Add User'}
+                  {editUserId ? "Save Changes" : "Add User"}
                 </button>
               </div>
             </form>

@@ -12,7 +12,7 @@ const PassengerDetails = ({ onBack }) => {
   const recentPassengers = [
     {
       id: 1,
-      name: 'Rajesh Kumar',
+      name: 'ajesh Kumar',
       email: 'rajesh@example.com',
       phone: '+91 98765 43210',
       joinDate: '2024-01-15',

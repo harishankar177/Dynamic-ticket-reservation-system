@@ -1,12 +1,12 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  name: String,
+  name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  phone: String,
-  password: { type: String, required: true },
-  role: { type: String, enum: ['passenger', 'TTE', 'admin'], default: 'passenger' }
-}, { timestamps: true });
+  phone: { type: String },
+  role: { type: String, enum: ["admin", "tte", "passenger"], default: "passenger" },
+  isActive: { type: Boolean, default: true },
+  joinDate: { type: String, default: new Date().toISOString().split("T")[0] },
+});
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model("User", userSchema);
