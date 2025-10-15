@@ -11,10 +11,10 @@ import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 
 import Header from './components/Header';
 import SearchForm from './components/pages/SearchForm';
-import TrainList from './components/pages/TrainList';
+import TrainList from './components/Booking/TrainList';
 import PNRStatus from './components/pages/PNRStatus';
 import TrainLiveStatus from './components/pages/TrainLiveStatus';
-import PassengerDetails from './components/pages/PassengerDetails';
+import PassengerDetails from './components/Booking/PassengerDetails';
 import MyBookings from './components/pages/MyBookings';
 import Payment from './components/pages/Payment';
 import BookingConfirmation from './components/pages/BookingConfirmation';
@@ -24,6 +24,7 @@ import ForgotPassword from './components/login/ForgotPassword';
 import TrainStatus from './components/pages/TrainStatus';
 import TTE from './components/TTE/TTE';
 import Admin from './components/Admin/Admin';
+import BookingContainer from './components/Booking/BookingContainer';
 
 // =======================
 // ProtectedRoute Component
@@ -276,7 +277,7 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRole="Passenger">
                 {searchData ? (
-                  <TrainList searchData={searchData} onSelectTrain={handleTrainSelect} />
+                  <BookingContainer searchData={searchData} />
                 ) : <Navigate to="/" replace />}
               </ProtectedRoute>
             } 
