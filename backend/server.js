@@ -2,7 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+
+// EXISTING AUTH ROUTES
 import authRouter from './routes/auth.js';
+
+// ✅ NEW: Train Routes
+import trainRoutes from './routes/trainRoutes.js';
 
 dotenv.config();
 
@@ -15,6 +20,9 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRouter);
 
+// ✅ NEW: Train management routes
+app.use('/api/trains', trainRoutes);
+
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/Railbook';
 
@@ -23,14 +31,14 @@ const connectDB = async () => {
     await mongoose.connect(MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000, // Wait up to 30s for a primary
+      serverSelectionTimeoutMS: 30000,
       retryWrites: true,
       w: 'majority',
     });
     console.log('✅ MongoDB connected');
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
-    process.exit(1); // Stop the server if DB connection fails
+    process.exit(1);
   }
 };
 
