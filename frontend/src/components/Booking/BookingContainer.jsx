@@ -48,13 +48,24 @@ const BookingContainer = ({ searchData, onSelectTrain }) => {
         />
       )}
 
-      {showSeatSelection && selectedCoach && selectedTrain && (  
+      {showSeatSelection && selectedCoach && selectedTrain && (
         <SeatSelection
           coach={selectedCoach}
           train={selectedTrain}
           requiredSeats={searchData.passengers}
           onClose={handleCloseSeatSelection}
-          onConfirm={() => setShowSeatSelection(false)}
+          onConfirm={(selectedSeats) => {
+            // propagate selection up to App via onSelectTrain so the app can set selectedTrain + navigate
+            if (onSelectTrain) {
+              onSelectTrain({
+                ...selectedTrain,
+                selectedClass: selectedCoach.type,
+                selectedCoach,
+                selectedSeats,
+              });
+            }
+            setShowSeatSelection(false);
+          }}
         />
       )}
     </div>
