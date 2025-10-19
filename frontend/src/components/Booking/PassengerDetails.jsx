@@ -18,20 +18,18 @@ const PassengerDetails = ({
   );
 
   const handleChange = (index, field, value) => {
+    // Restrict name field to alphabets and spaces only
+    if (field === 'name') {
+      value = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+
     const updated = [...passengers];
     updated[index][field] = value;
     setPassengers(updated);
   };
 
-  const validateEmail = (email) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email) && email.length <= 50;
-  };
-
-  const validatePhone = (phone) => {
-    const regex = /^\d{10}$/;
-    return regex.test(phone);
-  };
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 50;
+  const validatePhone = (phone) => /^\d{10}$/.test(phone);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,7 +41,6 @@ const PassengerDetails = ({
       }
 
       if (i === 0) {
-        // First passenger: all fields mandatory
         if (!p.email || !validateEmail(p.email)) {
           alert('Please enter a valid email (max 50 chars) for the first passenger');
           return;
@@ -53,7 +50,6 @@ const PassengerDetails = ({
           return;
         }
       } else {
-        // Other passengers: optional phone/email
         if (p.phone && !validatePhone(p.phone)) {
           alert(`Phone number for passenger ${i + 1} must be exactly 10 digits`);
           return;
@@ -70,22 +66,46 @@ const PassengerDetails = ({
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <h2 className="text-2xl font-semibold mb-2">Passenger Details</h2>
-      <p className="text-gray-500 mb-6">Please provide details for all passengers</p>
 
-      <div className="bg-purple-50 p-4 rounded-lg mb-6 flex flex-col md:flex-row justify-between items-start md:items-center space-y-2 md:space-y-0">
-        <div>
-          <p className="text-gray-500 text-sm">Selected Trains</p>
-          <span className="bg-white px-2 py-1 rounded flex items-center space-x-1">
-            <Train size={16} />
-            {selectedTrains.join(', ')}
-          </span>
+      {/* 🔙 Back Button */}
+      <button
+        onClick={() => window.history.back()}
+        className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors font-medium mb-6"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l5.293 5.293a1 1 0 010 1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <span>Back to Train Selection</span>
+      </button>
+
+      {/* 🚆 Train Info Card */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-5 rounded-xl flex justify-between items-center shadow-lg mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="bg-white/20 p-2 rounded-lg">
+            <Train size={28} />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold">
+              {selectedTrains[0] || 'Selected Train'}
+            </h2>
+            <p className="text-sm opacity-90">
+              Train #{selectedTrains.length > 1 ? selectedTrains.join(', ') : 'N/A'}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-gray-500 text-sm">Total Amount</p>
-          <span className="text-blue-600 font-semibold text-lg">₹{totalAmount}</span>
+        <div className="text-right">
+          <p className="text-2xl font-bold">₹{totalAmount}</p>
+          <p className="text-sm opacity-80">Total Fare</p>
         </div>
       </div>
+
+      {/* 👤 Passenger Form */}
+      <h2 className="text-2xl font-semibold mb-2">Passenger Details</h2>
+      <p className="text-gray-500 mb-6">Please provide details for all passengers</p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {passengers.map((p, index) => (
@@ -101,11 +121,13 @@ const PassengerDetails = ({
                 <User size={18} />
                 <input
                   type="text"
-                  placeholder="Enter full name as per ID"
+                  placeholder="Enter full name (letters only)"
                   value={p.name}
                   onChange={(e) => handleChange(index, 'name', e.target.value)}
                   className="flex-1 p-2 border rounded w-full"
                   required
+                  pattern="[A-Za-z\s]+"
+                  title="Name should contain only letters and spaces"
                 />
               </div>
             </div>

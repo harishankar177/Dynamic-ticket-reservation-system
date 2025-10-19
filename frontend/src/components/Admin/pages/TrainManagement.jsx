@@ -169,16 +169,52 @@ export default function TrainManagement() {
             </button>
             <h3 className="text-xl font-bold text-slate-800 mb-4">{editMode ? "Edit Train" : "Add New Train"}</h3>
             <form onSubmit={handleAddTrain} className="space-y-3">
-              <input type="text" placeholder="Train Number" value={newTrain.number} onChange={(e)=>setNewTrain({...newTrain, number:e.target.value})} required className="w-full border px-3 py-2 rounded-lg"/>
-              <input type="text" placeholder="Train Name" value={newTrain.name} onChange={(e)=>setNewTrain({...newTrain, name:e.target.value})} required className="w-full border px-3 py-2 rounded-lg"/>
-              <input type="text" placeholder="From" value={newTrain.from} onChange={(e)=>setNewTrain({...newTrain, from:e.target.value})} required className="w-full border px-3 py-2 rounded-lg"/>
-              <input type="text" placeholder="To" value={newTrain.to} onChange={(e)=>setNewTrain({...newTrain, to:e.target.value})} required className="w-full border px-3 py-2 rounded-lg"/>
-              <select value={newTrain.status} onChange={(e)=>setNewTrain({...newTrain, status:e.target.value})} className="w-full border px-3 py-2 rounded-lg">
+              <input
+                type="text"
+                placeholder="Train Number"
+                value={newTrain.number}
+                onChange={(e) =>
+                  setNewTrain({ ...newTrain, number: e.target.value.replace(/[^0-9]/g, "") })
+                }
+                required
+                className="w-full border px-3 py-2 rounded-lg"
+              />
+              <input
+                type="text"
+                placeholder="Train Name"
+                value={newTrain.name}
+                onChange={(e) =>
+                  setNewTrain({ ...newTrain, name: e.target.value.replace(/[^a-zA-Z\s]/g, "") })
+                }
+                required
+                className="w-full border px-3 py-2 rounded-lg"
+              />
+              <input
+                type="text"
+                placeholder="From"
+                value={newTrain.from}
+                onChange={(e) => setNewTrain({ ...newTrain, from: e.target.value })}
+                required
+                className="w-full border px-3 py-2 rounded-lg"
+              />
+              <input
+                type="text"
+                placeholder="To"
+                value={newTrain.to}
+                onChange={(e) => setNewTrain({ ...newTrain, to: e.target.value })}
+                required
+                className="w-full border px-3 py-2 rounded-lg"
+              />
+              <select
+                value={newTrain.status}
+                onChange={(e) => setNewTrain({ ...newTrain, status: e.target.value })}
+                className="w-full border px-3 py-2 rounded-lg"
+              >
                 <option value="active">Active</option>
                 <option value="maintenance">Maintenance</option>
               </select>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={()=>setIsModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg">{editMode ? "Save" : "Add Train"}</button>
               </div>
             </form>

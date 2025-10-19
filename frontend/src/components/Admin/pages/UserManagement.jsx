@@ -5,11 +5,11 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [users, setUsers] = useState([
-    { id: 1, name: 'Rajesh Kumar', email: 'rajesh@example.com', phone: '+91 98765 43210', role: 'passenger', isActive: true, joinDate: '2024-01-15' },
-    { id: 2, name: 'Priya Sharma', email: 'priya@example.com', phone: '+91 98765 43211', role: 'passenger', isActive: true, joinDate: '2024-02-20' },
-    { id: 3, name: 'Amit Patel', email: 'amit@example.com', phone: '+91 98765 43212', role: 'tte', isActive: true, joinDate: '2023-11-10', registerNumber: 'TTE1234' },
-    { id: 4, name: 'Sneha Gupta', email: 'sneha@example.com', phone: '+91 98765 43213', role: 'tte', isActive: true, joinDate: '2023-12-05', registerNumber: 'TTE5678' },
-    { id: 5, name: 'Vikram Singh', email: 'vikram@example.com', phone: '+91 98765 43214', role: 'passenger', isActive: false, joinDate: '2024-03-12' },
+    { id: 1, name: 'Rajesh Kumar', email: 'rajesh@example.com', phone: '9876543210', role: 'passenger', isActive: true, joinDate: '2024-01-15' },
+    { id: 2, name: 'Priya Sharma', email: 'priya@example.com', phone: '9876543211', role: 'passenger', isActive: true, joinDate: '2024-02-20' },
+    { id: 3, name: 'Amit Patel', email: 'amit@example.com', phone: '9876543212', role: 'tte', isActive: true, joinDate: '2023-11-10', registerNumber: 'TTE1234' },
+    { id: 4, name: 'Sneha Gupta', email: 'sneha@example.com', phone: '9876543213', role: 'tte', isActive: true, joinDate: '2023-12-05', registerNumber: 'TTE5678' },
+    { id: 5, name: 'Vikram Singh', email: 'vikram@example.com', phone: '9876543214', role: 'passenger', isActive: false, joinDate: '2024-03-12' },
   ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,15 +32,27 @@ export default function UserManagement() {
     return matchesSearch && matchesRole;
   });
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+
   const handleAddOrEditUser = (e) => {
     e.preventDefault();
-    // Validation: Prevent adding passenger
+
+    // Validation
+    if (!validateEmail(newUser.email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+    if (newUser.phone.length !== 10) {
+      alert("Phone number must be 10 digits.");
+      return;
+    }
     if (newUser.role === 'passenger') {
       alert("Admins cannot add passengers. Please choose TTE or Admin.");
       return;
     }
-
-    // Validation: Require register number for TTE
     if (newUser.role === 'tte' && !newUser.registerNumber.trim()) {
       alert("Please enter the TTE Register Number.");
       return;
@@ -216,7 +228,7 @@ export default function UserManagement() {
                 type="text"
                 placeholder="Name"
                 value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
                 required
               />
@@ -232,7 +244,8 @@ export default function UserManagement() {
                 type="text"
                 placeholder="Phone"
                 value={newUser.phone}
-                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                maxLength={10}
+                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value.replace(/[^0-9]/g, '') })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
                 required
               />
@@ -245,7 +258,6 @@ export default function UserManagement() {
                 <option value="admin">Admin</option>
               </select>
 
-              {/* Conditionally show Register Number input for TTE */}
               {newUser.role === 'tte' && (
                 <input
                   type="text"
