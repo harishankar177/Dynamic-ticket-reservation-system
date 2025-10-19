@@ -7,8 +7,8 @@ export default function UserManagement() {
   const [users, setUsers] = useState([
     { id: 1, name: 'Rajesh Kumar', email: 'rajesh@example.com', phone: '+91 98765 43210', role: 'passenger', isActive: true, joinDate: '2024-01-15' },
     { id: 2, name: 'Priya Sharma', email: 'priya@example.com', phone: '+91 98765 43211', role: 'passenger', isActive: true, joinDate: '2024-02-20' },
-    { id: 3, name: 'Amit Patel', email: 'amit@example.com', phone: '+91 98765 43212', role: 'tte', isActive: true, joinDate: '2023-11-10' },
-    { id: 4, name: 'Sneha Gupta', email: 'sneha@example.com', phone: '+91 98765 43213', role: 'tte', isActive: true, joinDate: '2023-12-05' },
+    { id: 3, name: 'Amit Patel', email: 'amit@example.com', phone: '+91 98765 43212', role: 'tte', isActive: true, joinDate: '2023-11-10', registerNumber: 'TTE1234' },
+    { id: 4, name: 'Sneha Gupta', email: 'sneha@example.com', phone: '+91 98765 43213', role: 'tte', isActive: true, joinDate: '2023-12-05', registerNumber: 'TTE5678' },
     { id: 5, name: 'Vikram Singh', email: 'vikram@example.com', phone: '+91 98765 43214', role: 'passenger', isActive: false, joinDate: '2024-03-12' },
   ]);
 
@@ -18,7 +18,8 @@ export default function UserManagement() {
     name: '',
     email: '',
     phone: '',
-    role: 'passenger',
+    role: 'tte',
+    registerNumber: '',
     isActive: true,
     joinDate: new Date().toISOString().split('T')[0],
   });
@@ -33,11 +34,21 @@ export default function UserManagement() {
 
   const handleAddOrEditUser = (e) => {
     e.preventDefault();
+    // Validation: Prevent adding passenger
+    if (newUser.role === 'passenger') {
+      alert("Admins cannot add passengers. Please choose TTE or Admin.");
+      return;
+    }
+
+    // Validation: Require register number for TTE
+    if (newUser.role === 'tte' && !newUser.registerNumber.trim()) {
+      alert("Please enter the TTE Register Number.");
+      return;
+    }
+
     if (editUserId) {
-      // Update existing user
       setUsers(users.map(u => u.id === editUserId ? { ...u, ...newUser } : u));
     } else {
-      // Add new user
       setUsers([...users, { id: users.length + 1, ...newUser }]);
     }
     resetForm();
@@ -64,7 +75,8 @@ export default function UserManagement() {
       name: '',
       email: '',
       phone: '',
-      role: 'passenger',
+      role: 'tte',
+      registerNumber: '',
       isActive: true,
       joinDate: new Date().toISOString().split('T')[0],
     });
@@ -78,7 +90,7 @@ export default function UserManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">User Management</h2>
-          <p className="text-slate-600">Manage passengers, TTEs, and administrators</p>
+          <p className="text-slate-600">Manage TTEs and administrators</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -108,7 +120,6 @@ export default function UserManagement() {
             className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">All Roles</option>
-            <option value="passenger">Passengers</option>
             <option value="tte">TTEs</option>
             <option value="admin">Admins</option>
           </select>
@@ -123,6 +134,7 @@ export default function UserManagement() {
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Email</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Phone</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Role</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Register No.</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Join Date</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
@@ -142,6 +154,9 @@ export default function UserManagement() {
                     }`}>
                       {user.role.toUpperCase()}
                     </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-slate-700">
+                    {user.role === 'tte' ? (user.registerNumber || '-') : '-'}
                   </td>
                   <td className="py-3 px-4">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
@@ -223,13 +238,25 @@ export default function UserManagement() {
               />
               <select
                 value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value, registerNumber: '' })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="passenger">Passenger</option>
                 <option value="tte">TTE</option>
                 <option value="admin">Admin</option>
               </select>
+
+              {/* Conditionally show Register Number input for TTE */}
+              {newUser.role === 'tte' && (
+                <input
+                  type="text"
+                  placeholder="TTE Register Number"
+                  value={newUser.registerNumber}
+                  onChange={(e) => setNewUser({ ...newUser, registerNumber: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
+                  required
+                />
+              )}
+
               <select
                 value={newUser.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setNewUser({ ...newUser, isActive: e.target.value === 'active' })}

@@ -4,11 +4,11 @@ import { Plus, Search, CreditCard as Edit2, Trash2, Settings, X } from 'lucide-r
 export default function TrainManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [trains, setTrains] = useState([
-    { id: 1, number: '12345', name: 'Rajdhani Express', seats: 1200, farePerKm: 1.5, status: 'active', route: 'Mumbai - Delhi' },
-    { id: 2, number: '67890', name: 'Shatabdi Express', seats: 800, farePerKm: 2.0, status: 'active', route: 'Chennai - Bangalore' },
-    { id: 3, number: '45678', name: 'Duronto Express', seats: 1000, farePerKm: 1.8, status: 'active', route: 'Kolkata - Patna' },
-    { id: 4, number: '23456', name: 'Garib Rath', seats: 1500, farePerKm: 0.8, status: 'maintenance', route: 'Ahmedabad - Jaipur' },
-    { id: 5, number: '78901', name: 'Jan Shatabdi', seats: 900, farePerKm: 1.2, status: 'active', route: 'Pune - Hyderabad' },
+    { id: 1, number: '12345', name: 'Rajdhani Express', status: 'active', route: 'Mumbai - Delhi' },
+    { id: 2, number: '67890', name: 'Shatabdi Express', status: 'active', route: 'Chennai - Bangalore' },
+    { id: 3, number: '45678', name: 'Duronto Express', status: 'active', route: 'Kolkata - Patna' },
+    { id: 4, number: '23456', name: 'Garib Rath', status: 'maintenance', route: 'Ahmedabad - Jaipur' },
+    { id: 5, number: '78901', name: 'Jan Shatabdi', status: 'active', route: 'Pune - Hyderabad' },
   ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,8 +19,6 @@ export default function TrainManagement() {
     number: '',
     name: '',
     route: '',
-    seats: '',
-    farePerKm: '',
     status: 'active',
   });
 
@@ -38,13 +36,11 @@ export default function TrainManagement() {
       const trainToAdd = {
         id: trains.length + 1,
         ...newTrain,
-        seats: parseInt(newTrain.seats, 10),
-        farePerKm: parseFloat(newTrain.farePerKm),
       };
       setTrains([...trains, trainToAdd]);
     }
 
-    setNewTrain({ number: '', name: '', route: '', seats: '', farePerKm: '', status: 'active' });
+    setNewTrain({ number: '', name: '', route: '', status: 'active' });
     setIsModalOpen(false);
     setEditMode(false);
   };
@@ -108,8 +104,6 @@ export default function TrainManagement() {
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Train Number</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Name</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Route</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Seats</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Fare/km</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
               </tr>
@@ -120,8 +114,6 @@ export default function TrainManagement() {
                   <td className="py-3 px-4 text-sm font-medium text-slate-800">{train.number}</td>
                   <td className="py-3 px-4 text-sm text-slate-700">{train.name}</td>
                   <td className="py-3 px-4 text-sm text-slate-600">{train.route}</td>
-                  <td className="py-3 px-4 text-sm text-slate-700">{train.seats}</td>
-                  <td className="py-3 px-4 text-sm text-slate-700">₹{train.farePerKm}</td>
                   <td className="py-3 px-4">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                       train.status === 'active'
@@ -167,11 +159,7 @@ export default function TrainManagement() {
                   {train.status}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-slate-500">Route:</span><p className="text-slate-800">{train.route}</p></div>
-                <div><span className="text-slate-500">Seats:</span><p className="text-slate-800">{train.seats}</p></div>
-                <div><span className="text-slate-500">Fare/km:</span><p className="text-slate-800">₹{train.farePerKm}</p></div>
-              </div>
+              <p className="text-sm text-slate-600"><span className="text-slate-500">Route:</span> {train.route}</p>
               <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
                 <button onClick={() => handleEditTrain(train)} className="flex-1 py-2 px-3 bg-white hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center gap-2">
                   <Edit2 size={16} /><span className="text-sm">Edit</span>
@@ -203,8 +191,6 @@ export default function TrainManagement() {
               <input type="text" placeholder="Train Number" value={newTrain.number} onChange={(e) => setNewTrain({ ...newTrain, number: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" required />
               <input type="text" placeholder="Train Name" value={newTrain.name} onChange={(e) => setNewTrain({ ...newTrain, name: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" required />
               <input type="text" placeholder="Route (e.g., Mumbai - Delhi)" value={newTrain.route} onChange={(e) => setNewTrain({ ...newTrain, route: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" required />
-              <input type="number" placeholder="Seats" value={newTrain.seats} onChange={(e) => setNewTrain({ ...newTrain, seats: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" required />
-              <input type="number" step="0.1" placeholder="Fare per km" value={newTrain.farePerKm} onChange={(e) => setNewTrain({ ...newTrain, farePerKm: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500" required />
               <select value={newTrain.status} onChange={(e) => setNewTrain({ ...newTrain, status: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500">
                 <option value="active">Active</option>
                 <option value="maintenance">Maintenance</option>
