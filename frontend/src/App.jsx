@@ -277,7 +277,7 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRole="Passenger">
                 {searchData ? (
-                  <BookingContainer searchData={searchData} />
+                  <BookingContainer searchData={searchData} onSelectTrain={handleTrainSelect} />
                 ) : <Navigate to="/" replace />}
               </ProtectedRoute>
             } 
