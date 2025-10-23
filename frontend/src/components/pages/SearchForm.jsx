@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Calendar, Users, ArrowRightLeft } from 'lucide-react';
+import axiosInstance from '../../axiosInstance';
 
 const SearchForm = ({ onSearch }) => {
   const [from, setFrom] = useState('');
@@ -7,19 +8,40 @@ const SearchForm = ({ onSearch }) => {
   const [date, setDate] = useState('');
   const [passengers, setPassengers] = useState(1);
 
-  // Predefined routes and trains
-  const routes = {
-    'Chennai Egmore': {
-      'Kanniyakumari': ['Kanniyakumari SF Express', 'Kashi Tami Sangamam Express'],
-      'Madurai': ['Madurai Tejas Express', 'Vaigai SF Express', 'Pothigai SF Express', 'Chendur SF Express']
-    },
-    'Kanniyakumari': {
-      'New Delhi': ['Thirukkural SF Express', 'Himsagar Express']
-    },
-    'Chennai Central': {
-      'Mysuru': ['Mysuru Shatabdi Express', 'Ashokapuram SF Express', 'Kaveri Express']
-    }
-  };
+  // Stations and trains will be loaded from backend (Railbook DB)
+  const [stations, setStations] = useState([]);
+  const [allTrains, setAllTrains] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchTrains = async () => {
+      try {
+        const res = await axiosInstance.get('/trains');
+        if (!mounted) return;
+        const trains = res.data || [];
+        setAllTrains(trains);
+
+        const setOfStations = new Set();
+        trains.forEach((t) => {
+          if (t.from) setOfStations.add(t.from);
+          if (t.to) setOfStations.add(t.to);
+          if (Array.isArray(t.routes)) {
+            t.routes.forEach((r) => {
+              if (r.stopName) setOfStations.add(r.stopName);
+            });
+          }
+        });
+
+        setStations(Array.from(setOfStations).sort());
+      } catch (err) {
+        // silently fail - keep UI unchanged
+        console.error('Failed to fetch trains/stations', err);
+      }
+    };
+
+    fetchTrains();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -38,8 +60,58 @@ const SearchForm = ({ onSearch }) => {
     setTo(toCity);
   };
 
-  const cities = Object.keys(routes);
-  const destinationOptions = from ? Object.keys(routes[from]) : [];
+  // cities -> all unique stations
+  const cities = stations;
+
+  // compute destination options based on selected `from` and the trains loaded
+  const destinationOptions = React.useMemo(() => {
+    if (!from || !allTrains.length) return [];
+
+    const destSet = new Set();
+
+    allTrains.forEach((t) => {
+      // build ordered stops array for the train
+      const stops = [];
+      if (t.from) stops.push(t.from);
+      if (Array.isArray(t.routes)) stops.push(...t.routes.map((r) => r.stopName));
+      if (t.to) stops.push(t.to);
+
+      const fromIndex = stops.findIndex((s) => s === from);
+      const toIndex = stops.findIndex((s) => s === to);
+
+      // if the train contains the `from` station, add all subsequent stops as possible destinations
+      if (fromIndex >= 0) {
+        for (let i = fromIndex + 1; i < stops.length; i += 1) {
+          if (stops[i]) destSet.add(stops[i]);
+        }
+      }
+    });
+
+    return Array.from(destSet).sort();
+  }, [from, allTrains]);
+
+  // build a lookup of routes[from][to] => array of trains for quick lookup in Popular Routes
+  const routes = React.useMemo(() => {
+    const map = {};
+    allTrains.forEach((t) => {
+      const stops = [];
+      if (t.from) stops.push(t.from);
+      if (Array.isArray(t.routes)) stops.push(...t.routes.map((r) => r.stopName));
+      if (t.to) stops.push(t.to);
+
+      for (let i = 0; i < stops.length; i += 1) {
+        for (let j = i + 1; j < stops.length; j += 1) {
+          const a = stops[i];
+          const b = stops[j];
+          if (!a || !b) continue;
+          if (!map[a]) map[a] = {};
+          if (!map[a][b]) map[a][b] = [];
+          map[a][b].push(t);
+        }
+      }
+    });
+    return map;
+  }, [allTrains]);
 
   const popularRoutes = [
     ['Chennai Egmore', 'Kanniyakumari'],
@@ -64,20 +136,22 @@ const SearchForm = ({ onSearch }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
-              <select
+              <input
+                list="stations-from"
                 value={from}
                 onChange={(e) => {
                   setFrom(e.target.value);
                   setTo('');
                 }}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Start typing station name"
                 required
-              >
-                <option value="">Select departure city</option>
+              />
+              <datalist id="stations-from">
                 {cities.map((city) => (
-                  <option key={city} value={city}>{city}</option>
+                  <option key={city} value={city} />
                 ))}
-              </select>
+              </datalist>
             </div>
           </div>
 
@@ -97,18 +171,20 @@ const SearchForm = ({ onSearch }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
-              <select
+              <input
+                list="stations-to"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 disabled={!from}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                placeholder={from ? 'Start typing destination station' : 'Select departure first'}
                 required
-              >
-                <option value="">Select destination city</option>
+              />
+              <datalist id="stations-to">
                 {destinationOptions.map((city) => (
-                  <option key={city} value={city}>{city}</option>
+                  <option key={city} value={city} />
                 ))}
-              </select>
+              </datalist>
             </div>
           </div>
 
@@ -178,7 +254,7 @@ const SearchForm = ({ onSearch }) => {
                 <span className="font-medium text-gray-800">{toCity}</span>
               </div>
               <p className="text-sm text-gray-600">
-                Available Trains: {routes[fromCity][toCity]?.length || 0}
+                Available Trains: {routes?.[fromCity]?.[toCity]?.length || 0}
               </p>
             </div>
           ))}

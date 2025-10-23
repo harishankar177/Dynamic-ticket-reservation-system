@@ -1,57 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Clock, Activity, AlertCircle, Train as TrainIcon } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Clock, Activity, AlertCircle, Train as TrainIcon } from 'lucide-react';
 
-const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
-  const [currentStationIndex, setCurrentStationIndex] = useState(train.currentStation || 0);
+const LiveTrainStatus = ({ train = {}, onClose, onSelectCoach }) => {
+  // ✅ Safe route derivation
+  const route = useMemo(() => {
+    if (Array.isArray(train.route) && train.route.length > 0) {
+      return train.route.map((r) => ({
+        name: r.name || r.stopName || 'Unknown',
+        arrival: r.arrival || '',
+        departure: r.departure || '',
+        platform: r.platform || '',
+        distance: r.distance || 0,
+        delay: r.delay || 0,
+      }));
+    } else if (Array.isArray(train.routes)) {
+      return train.routes.map((r) => ({
+        name: r.stopName || 'Unknown',
+        arrival: r.arrival || '',
+        departure: r.departure || '',
+        platform: r.platform || '',
+        distance: r.distance || 0,
+        delay: r.delay || 0,
+      }));
+    } else if (train.from && train.to) {
+      return [{ name: train.from }, { name: train.to }];
+    }
+    return [];
+  }, [train]);
+
+  // ✅ Safe classes derivation
+  const classes = useMemo(() => {
+    if (Array.isArray(train.classes) && train.classes.length > 0) return train.classes;
+    if (Array.isArray(train.coaches))
+      return Array.from(new Set(train.coaches.map((c) => c.type).filter(Boolean)));
+    return ['SL', '3A', '2A'];
+  }, [train]);
+
+  // ✅ Safe availability map
+  const classAvailability = useMemo(() => {
+    const map = {};
+    if (train.classAvailability) return train.classAvailability;
+    if (Array.isArray(train.coaches)) {
+      train.coaches.forEach((c) => {
+        if (c && c.type) map[c.type] = { available: c.seatsAvailable ?? 0 };
+      });
+    }
+    return map;
+  }, [train]);
+
+  // ✅ Live progress simulation
+  const [currentStationIndex, setCurrentStationIndex] = useState(
+    Math.min(train.currentStation ?? 0, Math.max(0, (route.length || 1) - 1))
+  );
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (train.isRunning && currentStationIndex < train.route.length - 1) {
+    if (train.isRunning && route.length > 1) {
       const timer = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
-            setCurrentStationIndex((curr) => Math.min(curr + 1, train.route.length - 1));
+            setCurrentStationIndex((curr) => Math.min(curr + 1, route.length - 1));
             return 0;
           }
           return prev + 2;
         });
       }, 200);
-
       return () => clearInterval(timer);
     }
-  }, [currentStationIndex, train.isRunning, train.route.length]);
+  }, [train.isRunning, route.length]);
 
-  const generateCoaches = () => {
-    const coaches = [];
-    const classTypes = train.classes;
-
-    classTypes.forEach((classType) => {
-      const coachCount = classType === 'SL' ? 8 : classType === '3A' ? 4 : 2;
-
-      for (let i = 1; i <= coachCount; i++) {
-        const totalSeats =
-          classType === 'SL' ? 72 : classType === '3A' ? 64 : classType === '2A' ? 54 : 18;
-        const availability = train.classAvailability[classType];
-        const availableSeats =
-          Math.floor((availability.available / coachCount) * 0.8) + Math.floor(Math.random() * 5);
-
-        coaches.push({
-          id: `${classType}-${i}`,
-          type: classType,
-          number: `${classType}${i}`,
-          totalSeats,
-          availableSeats: Math.max(0, Math.min(availableSeats, totalSeats)),
-          seats: generateSeats(totalSeats, availableSeats, classType),
-        });
-      }
-    });
-
-    return coaches;
-  };
-
+  // ✅ Seat generation helpers
   const generateSeats = (total, available, classType) => {
     const rows = classType === '1A' ? 6 : classType === '2A' ? 18 : classType === '3A' ? 21 : 24;
-    const seatsPerRow = classType === '1A' ? 3 : classType === '2A' ? 3 : 3;
+    const seatsPerRow = 3;
     const seats = [];
 
     let seatNum = 1;
@@ -69,11 +90,38 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
       }
       seats.push(rowSeats);
     }
-
     return seats;
   };
 
-  const [coaches] = useState(generateCoaches());
+  // ✅ Coach generation
+  const generateCoaches = () => {
+    const coaches = [];
+    classes.forEach((classType) => {
+      const coachCount = classType === 'SL' ? 8 : classType === '3A' ? 4 : 2;
+      const totalSeats =
+        classType === 'SL' ? 72 : classType === '3A' ? 64 : classType === '2A' ? 54 : 18;
+      const availability = classAvailability[classType] ?? {
+        available: Math.floor(totalSeats * coachCount * 0.6),
+      };
+
+      for (let i = 1; i <= coachCount; i++) {
+        const availableSeats =
+          Math.floor((availability.available / coachCount) * 0.8) +
+          Math.floor(Math.random() * 5);
+        coaches.push({
+          id: `${classType}-${i}`,
+          type: classType,
+          number: `${classType}${i}`,
+          totalSeats,
+          availableSeats: Math.max(0, Math.min(availableSeats, totalSeats)),
+          seats: generateSeats(totalSeats, availableSeats, classType),
+        });
+      }
+    });
+    return coaches;
+  };
+
+  const [coaches] = useState(generateCoaches);
 
   const getStationStatus = (index) => {
     if (index < currentStationIndex) return 'completed';
@@ -96,21 +144,28 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
     }
   };
 
+  // ✅ Render (UI untouched)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">{train.name}</h2>
-            <p className="text-blue-100">Train #{train.number}</p>
+            <h2 className="text-2xl font-bold">{train.name || 'Train Details'}</h2>
+            {train.number && <p className="text-blue-100">Train #{train.number}</p>}
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all"
+          >
             <X size={24} />
           </button>
         </div>
 
+        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Route Status */}
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-gray-800">Live Route Status</h3>
@@ -123,9 +178,9 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
               </div>
 
               <div className="relative">
-                {train.route.map((station, index) => {
+                {route.map((station, index) => {
                   const status = getStationStatus(index);
-                  const isLast = index === train.route.length - 1;
+                  const isLast = index === route.length - 1;
 
                   return (
                     <div key={index} className="relative">
@@ -196,8 +251,12 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
                               </div>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{station.distance} km from origin</p>
-                          {station.delay && station.delay > 0 && (
+                          {station.distance > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {station.distance} km from origin
+                            </p>
+                          )}
+                          {station.delay > 0 && (
                             <div className="flex items-center space-x-1 text-red-600 text-xs mt-1">
                               <AlertCircle size={12} />
                               <span>Delayed by {station.delay} min</span>
@@ -211,6 +270,7 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
               </div>
             </div>
 
+            {/* Coaches */}
             <div>
               <h3 className="text-xl font-bold text-gray-800 mb-6">Select Coach</h3>
               <div className="space-y-3">
@@ -244,7 +304,9 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
                           <div className={`w-3 h-3 ${getCoachColor(coach.type)} rounded-full`} />
                           <h4 className="font-bold text-gray-800">{coach.number}</h4>
                         </div>
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">{coach.type} Class</span>
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          {coach.type} Class
+                        </span>
                       </div>
 
                       <div className="space-y-2">
@@ -268,7 +330,9 @@ const LiveTrainStatus = ({ train, onClose, onSelectCoach }) => {
                             className={`h-2 rounded-full transition-all ${
                               coach.availableSeats > 10 ? 'bg-green-500' : 'bg-red-500'
                             }`}
-                            style={{ width: `${(coach.availableSeats / coach.totalSeats) * 100}%` }}
+                            style={{
+                              width: `${(coach.availableSeats / coach.totalSeats) * 100}%`,
+                            }}
                           />
                         </div>
                       </div>
