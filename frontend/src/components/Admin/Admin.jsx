@@ -6,6 +6,7 @@ import UserManagement from '../Admin/pages/UserManagement';
 import PassengerDetails from '../Admin/pages/PassengerDetails';
 import TTEDetails from '../Admin/pages/TTEDetails';
 import PlaceholderSection from '../Admin/pages/PlaceholderSection';
+import RoutesAndStations from './pages/RoutesAndStations';
 
 import {
   Ticket,
@@ -63,13 +64,7 @@ const Admin = () => {
           />
         );
       case 'routes':
-        return (
-          <PlaceholderSection
-            title="Routes & Stations"
-            description="Manage train routes, station details, and connections"
-            icon={MapPin}
-          />
-        );
+        return <RoutesAndStations />;
       case 'reports':
         return (
           <PlaceholderSection

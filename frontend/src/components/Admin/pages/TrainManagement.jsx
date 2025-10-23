@@ -9,6 +9,16 @@ export default function TrainManagement() {
   const [editMode, setEditMode] = useState(false);
   const [currentTrainId, setCurrentTrainId] = useState(null);
 
+  const defaultCoaches = [
+    { type: "Sleeper", count: 0, seatsAvailable: 0 },
+    { type: "Seater", count: 0, seatsAvailable: 0 },
+    { type: "AC", count: 0, seatsAvailable: 0 },
+    { type: "Chair Car", count: 0, seatsAvailable: 0 },
+    { type: "First Class", count: 0, seatsAvailable: 0 },
+    { type: "2AC", count: 0, seatsAvailable: 0 },
+    { type: "3AC", count: 0, seatsAvailable: 0 },
+  ];
+
   const [newTrain, setNewTrain] = useState({
     name: "",
     number: "",
@@ -19,24 +29,17 @@ export default function TrainManagement() {
     status: "active",
     isRunning: false,
     routes: [{ stopName: "", arrival: "", departure: "" }],
-    coaches: [
-      { type: "Sleeper", count: 0, seatsAvailable: 0 },
-      { type: "Seater", count: 0, seatsAvailable: 0 },
-      { type: "AC", count: 0, seatsAvailable: 0 },
-      { type: "Chair Car", count: 0, seatsAvailable: 0 },
-      { type: "First Class", count: 0, seatsAvailable: 0 },
-      { type: "2AC", count: 0, seatsAvailable: 0 },
-      { type: "3AC", count: 0, seatsAvailable: 0 },
-    ],
+    coaches: [...defaultCoaches],
   });
 
   // Fetch trains
   const fetchTrains = async () => {
     try {
       const res = await axios.get("/trains");
-      setTrains(res.data);
+      setTrains(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch trains:", err);
+      setTrains([]);
     }
   };
 
@@ -44,7 +47,7 @@ export default function TrainManagement() {
     fetchTrains();
   }, []);
 
-  // Add or Edit Train
+  // Add/Edit train
   const handleAddTrain = async (e) => {
     e.preventDefault();
     try {
@@ -53,32 +56,29 @@ export default function TrainManagement() {
       } else {
         await axios.post("/trains", newTrain);
       }
-      setNewTrain({
-        name: "",
-        number: "",
-        from: "",
-        to: "",
-        departureTime: "",
-        arrivalTime: "",
-        status: "active",
-        isRunning: false,
-        routes: [{ stopName: "", arrival: "", departure: "" }],
-        coaches: [
-          { type: "Sleeper", count: 0, seatsAvailable: 0 },
-          { type: "Seater", count: 0, seatsAvailable: 0 },
-          { type: "AC", count: 0, seatsAvailable: 0 },
-          { type: "Chair Car", count: 0, seatsAvailable: 0 },
-          { type: "First Class", count: 0, seatsAvailable: 0 },
-          { type: "2AC", count: 0, seatsAvailable: 0 },
-          { type: "3AC", count: 0, seatsAvailable: 0 },
-        ],
-      });
+      resetNewTrain();
       setIsModalOpen(false);
-      setEditMode(false);
       fetchTrains();
     } catch (err) {
       console.error("Failed to save train:", err);
     }
+  };
+
+  const resetNewTrain = () => {
+    setNewTrain({
+      name: "",
+      number: "",
+      from: "",
+      to: "",
+      departureTime: "",
+      arrivalTime: "",
+      status: "active",
+      isRunning: false,
+      routes: [{ stopName: "", arrival: "", departure: "" }],
+      coaches: [...defaultCoaches],
+    });
+    setEditMode(false);
+    setCurrentTrainId(null);
   };
 
   const handleEditTrain = (train) => {
@@ -109,10 +109,55 @@ export default function TrainManagement() {
     }
   };
 
+  const handleToggleRunning = async (train) => {
+    try {
+      await axios.put(`/trains/${train._id}`, {
+        ...train,
+        isRunning: !train.isRunning,
+      });
+      fetchTrains();
+    } catch (err) {
+      console.error("Failed to toggle running:", err);
+    }
+  };
+
+  const handleUpdateSeats = async (train, coachIndex, newValue) => {
+    try {
+      const updatedCoaches = [...train.coaches];
+      updatedCoaches[coachIndex].seatsAvailable = Math.max(0, parseInt(newValue) || 0);
+      await axios.put(`/trains/${train._id}`, {
+        ...train,
+        coaches: updatedCoaches,
+      });
+      fetchTrains();
+    } catch (err) {
+      console.error("Failed to update seats:", err);
+    }
+  };
+
   const handleCoachCountChange = (index, delta) => {
     const updated = [...newTrain.coaches];
     updated[index].count = Math.max(0, updated[index].count + delta);
     setNewTrain({ ...newTrain, coaches: updated });
+  };
+
+  const handleCoachTypeChange = (index, value) => {
+    const updated = [...newTrain.coaches];
+    updated[index].type = value;
+    setNewTrain({ ...newTrain, coaches: updated });
+  };
+
+  const removeCoach = (index) => {
+    const updated = [...newTrain.coaches];
+    updated.splice(index, 1);
+    setNewTrain({ ...newTrain, coaches: updated });
+  };
+
+  const addNewCoach = () => {
+    setNewTrain({
+      ...newTrain,
+      coaches: [...newTrain.coaches, { type: "", count: 0, seatsAvailable: 0 }],
+    });
   };
 
   const handleRouteChange = (index, field, value) => {
@@ -134,13 +179,18 @@ export default function TrainManagement() {
     setNewTrain({ ...newTrain, routes: updated });
   };
 
-  const filteredTrains = trains.filter(
-    (t) =>
-      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.number.includes(searchTerm) ||
-      t.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.to.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTrains = Array.isArray(trains)
+    ? trains.filter(
+        (t) =>
+          t.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          t.number?.includes(searchTerm) ||
+          t.from?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          t.to?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
+
+  const calculateTotalSeats = (train) =>
+    train.coaches?.reduce((sum, c) => sum + (c.seatsAvailable || 0), 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -150,14 +200,12 @@ export default function TrainManagement() {
           <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
             Manage Trains
           </h2>
-          <p className="text-slate-600">
-            Add, edit, and manage train operations
-          </p>
+          <p className="text-slate-600">Add, edit, and manage train operations</p>
         </div>
         <button
           onClick={() => {
             setIsModalOpen(true);
-            setEditMode(false);
+            resetNewTrain();
           }}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
@@ -170,10 +218,7 @@ export default function TrainManagement() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
         <div className="mb-6">
           <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={20}
-            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
               placeholder="Search by name, number, from, to..."
@@ -189,69 +234,51 @@ export default function TrainManagement() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                  Number
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                  Name
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                  From
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                  To
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                  Actions
-                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Number</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Name</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">From</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">To</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Running</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Total Seats</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredTrains.map((train) => (
-                <tr
-                  key={train._id}
-                  className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                >
-                  <td className="py-3 px-4 text-sm font-medium text-slate-800">
-                    {train.number}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-slate-700">
-                    {train.name}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-slate-700">
-                    {train.from}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-slate-700">
-                    {train.to}
-                  </td>
+                <tr key={train._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className="py-3 px-4 text-sm font-medium text-slate-800">{train.number}</td>
+                  <td className="py-3 px-4 text-sm text-slate-700">{train.name}</td>
+                  <td className="py-3 px-4 text-sm text-slate-700">{train.from}</td>
+                  <td className="py-3 px-4 text-sm text-slate-700">{train.to}</td>
                   <td className="py-3 px-4">
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        train.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-amber-100 text-amber-700"
+                        train.status === "active" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                       }`}
                     >
                       {train.status}
                     </span>
                   </td>
+                  <td className="py-3 px-4">
+                    <button
+                      onClick={() => handleToggleRunning(train)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        train.isRunning ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {train.isRunning ? "Running" : "Stopped"}
+                    </button>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-slate-700">{calculateTotalSeats(train)}</td>
                   <td className="py-3 px-4 flex gap-2">
                     <button onClick={() => handleEditTrain(train)} title="Edit">
                       <Edit2 size={16} className="text-slate-600" />
                     </button>
-                    <button
-                      onClick={() => handleToggleStatus(train)}
-                      title="Toggle Status"
-                    >
+                    <button onClick={() => handleToggleStatus(train)} title="Toggle Status">
                       <Settings size={16} className="text-slate-600" />
                     </button>
-                    <button
-                      onClick={() => handleDeleteTrain(train._id)}
-                      title="Delete"
-                    >
+                    <button onClick={() => handleDeleteTrain(train._id)} title="Delete">
                       <Trash2 size={16} className="text-red-600" />
                     </button>
                   </td>
@@ -266,26 +293,19 @@ export default function TrainManagement() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-3xl relative overflow-y-auto max-h-[90vh]">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
-            >
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-3 right-3 text-slate-500 hover:text-slate-700">
               <X size={20} />
             </button>
-            <h3 className="text-xl font-bold text-slate-800 mb-4">
-              {editMode ? "Edit Train" : "Add New Train"}
-            </h3>
+            <h3 className="text-xl font-bold text-slate-800 mb-4">{editMode ? "Edit Train" : "Add New Train"}</h3>
             <form onSubmit={handleAddTrain} className="space-y-3">
+              {/* --- Train Details --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input
                   type="text"
                   placeholder="Train Number"
                   value={newTrain.number}
                   onChange={(e) =>
-                    setNewTrain({
-                      ...newTrain,
-                      number: e.target.value.replace(/[^0-9]/g, ""),
-                    })
+                    setNewTrain({ ...newTrain, number: e.target.value.replace(/[^0-9]/g, "") })
                   }
                   required
                   className="w-full border px-3 py-2 rounded-lg"
@@ -295,202 +315,63 @@ export default function TrainManagement() {
                   placeholder="Train Name"
                   value={newTrain.name}
                   onChange={(e) =>
-                    setNewTrain({
-                      ...newTrain,
-                      name: e.target.value.replace(/[^a-zA-Z\s]/g, ""),
-                    })
+                    setNewTrain({ ...newTrain, name: e.target.value.replace(/[^a-zA-Z\s]/g, "") })
                   }
                   required
                   className="w-full border px-3 py-2 rounded-lg"
                 />
-                <input
-                  type="text"
-                  placeholder="From"
-                  value={newTrain.from}
-                  onChange={(e) =>
-                    setNewTrain({ ...newTrain, from: e.target.value })
-                  }
-                  required
-                  className="w-full border px-3 py-2 rounded-lg"
-                />
-                <input
-                  type="text"
-                  placeholder="To"
-                  value={newTrain.to}
-                  onChange={(e) =>
-                    setNewTrain({ ...newTrain, to: e.target.value })
-                  }
-                  required
-                  className="w-full border px-3 py-2 rounded-lg"
-                />
-                <input
-                  type="time"
-                  placeholder="Departure Time"
-                  value={newTrain.departureTime}
-                  onChange={(e) =>
-                    setNewTrain({ ...newTrain, departureTime: e.target.value })
-                  }
-                  className="w-full border px-3 py-2 rounded-lg"
-                />
-                <input
-                  type="time"
-                  placeholder="Arrival Time"
-                  value={newTrain.arrivalTime}
-                  onChange={(e) =>
-                    setNewTrain({ ...newTrain, arrivalTime: e.target.value })
-                  }
-                  className="w-full border px-3 py-2 rounded-lg"
-                />
+                <input type="text" placeholder="From" value={newTrain.from} onChange={(e) => setNewTrain({ ...newTrain, from: e.target.value })} required className="w-full border px-3 py-2 rounded-lg" />
+                <input type="text" placeholder="To" value={newTrain.to} onChange={(e) => setNewTrain({ ...newTrain, to: e.target.value })} required className="w-full border px-3 py-2 rounded-lg" />
+                <input type="time" placeholder="Departure Time" value={newTrain.departureTime} onChange={(e) => setNewTrain({ ...newTrain, departureTime: e.target.value })} className="w-full border px-3 py-2 rounded-lg" />
+                <input type="time" placeholder="Arrival Time" value={newTrain.arrivalTime} onChange={(e) => setNewTrain({ ...newTrain, arrivalTime: e.target.value })} className="w-full border px-3 py-2 rounded-lg" />
               </div>
 
               {/* Running Status */}
               <div className="flex items-center gap-2 mt-2">
-                <label className="text-slate-700 font-medium">
-                  Train Running:
-                </label>
-                <input
-                  type="checkbox"
-                  checked={newTrain.isRunning}
-                  onChange={(e) =>
-                    setNewTrain({
-                      ...newTrain,
-                      isRunning: e.target.checked,
-                    })
-                  }
-                />
+                <label className="text-slate-700 font-medium">Train Running:</label>
+                <input type="checkbox" checked={newTrain.isRunning} onChange={(e) => setNewTrain({ ...newTrain, isRunning: e.target.checked })} />
               </div>
 
-              {/* Routes */}
+              {/* --- Routes --- */}
               <div>
-                <h4 className="font-semibold text-slate-700 mt-3 mb-2">
-                  Routes & Stops
-                </h4>
+                <h4 className="font-semibold text-slate-700 mt-3 mb-2">Routes & Stops</h4>
                 {newTrain.routes.map((route, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2 items-center"
-                  >
-                    <input
-                      type="text"
-                      placeholder="Stop Name"
-                      value={route.stopName}
-                      onChange={(e) =>
-                        handleRouteChange(index, "stopName", e.target.value)
-                      }
-                      className="border rounded-lg px-2 py-1"
-                    />
-                    <input
-                      type="time"
-                      placeholder="Arrival"
-                      value={route.arrival}
-                      onChange={(e) =>
-                        handleRouteChange(index, "arrival", e.target.value)
-                      }
-                      className="border rounded-lg px-2 py-1"
-                    />
-                    <input
-                      type="time"
-                      placeholder="Departure"
-                      value={route.departure}
-                      onChange={(e) =>
-                        handleRouteChange(index, "departure", e.target.value)
-                      }
-                      className="border rounded-lg px-2 py-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeRouteStop(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      Remove
-                    </button>
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2 items-center">
+                    <input type="text" placeholder="Stop Name" value={route.stopName} onChange={(e) => handleRouteChange(index, "stopName", e.target.value)} className="border rounded-lg px-2 py-1" />
+                    <input type="time" placeholder="Arrival" value={route.arrival} onChange={(e) => handleRouteChange(index, "arrival", e.target.value)} className="border rounded-lg px-2 py-1" />
+                    <input type="time" placeholder="Departure" value={route.departure} onChange={(e) => handleRouteChange(index, "departure", e.target.value)} className="border rounded-lg px-2 py-1" />
+                    <button type="button" onClick={() => removeRouteStop(index)} className="text-red-500 hover:text-red-700">Remove</button>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={addRouteStop}
-                  className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                >
-                  + Add Stop
-                </button>
+                <button type="button" onClick={addRouteStop} className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">+ Add Stop</button>
               </div>
 
-              {/* Coaches Section */}
+              {/* --- Coaches --- */}
               <div>
-                <h4 className="font-semibold text-slate-700 mt-3 mb-2">
-                  Coaches
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <h4 className="font-semibold text-slate-700 mt-3 mb-2">Coaches</h4>
+                <div className="space-y-2">
                   {newTrain.coaches.map((coach, index) => (
-                    <div
-                      key={coach.type}
-                      className="flex flex-col border rounded-lg p-3 bg-slate-50 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-slate-800">
-                          {coach.type}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleCoachCountChange(index, -1)}
-                            className="px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"
-                          >
-                            –
-                          </button>
-                          <span className="w-6 text-center font-semibold">
-                            {coach.count}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleCoachCountChange(index, 1)}
-                            className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Seat Availability */}
-                      <div className="flex items-center justify-between mt-1">
-                        <label className="text-sm text-slate-600">
-                          Seats Available:
-                        </label>
-                        <input
-                          type="number"
-                          value={coach.seatsAvailable || 0}
-                          onChange={(e) => {
-                            const updated = [...newTrain.coaches];
-                            updated[index].seatsAvailable = Math.max(
-                              0,
-                              parseInt(e.target.value || 0)
-                            );
-                            setNewTrain({ ...newTrain, coaches: updated });
-                          }}
-                          className="border border-slate-300 rounded-lg px-2 py-1 w-20 text-center focus:ring-2 focus:ring-emerald-500 outline-none"
-                          min="0"
-                        />
-                      </div>
+                    <div key={index} className="flex items-center gap-2">
+                      <input type="text" value={coach.type} placeholder="Coach Type" onChange={(e) => handleCoachTypeChange(index, e.target.value)} className="border rounded px-2 py-1 w-32" />
+                      <button type="button" onClick={() => handleCoachCountChange(index, -1)} className="px-2 py-1 bg-gray-200 rounded">-</button>
+                      <span className="w-6 text-center">{coach.count}</span>
+                      <button type="button" onClick={() => handleCoachCountChange(index, 1)} className="px-2 py-1 bg-green-500 text-white rounded">+</button>
+                      <input type="number" min="0" placeholder="Seats" value={coach.seatsAvailable} onChange={(e) => {
+                        const updated = [...newTrain.coaches];
+                        updated[index].seatsAvailable = Math.max(0, parseInt(e.target.value) || 0);
+                        setNewTrain({ ...newTrain, coaches: updated });
+                      }} className="border rounded px-2 py-1 w-20 text-center" />
+                      <button type="button" onClick={() => removeCoach(index)} className="text-red-500 hover:text-red-700">Remove</button>
                     </div>
                   ))}
+                  <button type="button" onClick={addNewCoach} className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">+ Add Coach</button>
                 </div>
               </div>
 
-              {/* Submit Buttons */}
+              {/* Submit */}
               <div className="flex justify-end gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
-                >
-                  {editMode ? "Save Changes" : "Add Train"}
-                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">{editMode ? "Update Train" : "Add Train"}</button>
               </div>
             </form>
           </div>
