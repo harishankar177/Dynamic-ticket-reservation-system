@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, MapPin, Calendar, Users, ArrowRightLeft } from 'lucide-react';
 import axiosInstance from '../../axiosInstance';
 
@@ -8,9 +8,11 @@ const SearchForm = ({ onSearch }) => {
   const [date, setDate] = useState('');
   const [passengers, setPassengers] = useState(1);
 
-  // Stations and trains will be loaded from backend (Railbook DB)
   const [stations, setStations] = useState([]);
   const [allTrains, setAllTrains] = useState([]);
+
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
+  const [showToDropdown, setShowToDropdown] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -31,23 +33,14 @@ const SearchForm = ({ onSearch }) => {
             });
           }
         });
-
         setStations(Array.from(setOfStations).sort());
       } catch (err) {
-        // silently fail - keep UI unchanged
         console.error('Failed to fetch trains/stations', err);
       }
     };
-
     fetchTrains();
     return () => { mounted = false; };
   }, []);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!from || !to || !date || !passengers) return alert('Please fill all fields');
-    onSearch({ from, to, date, passengers });
-  };
 
   const swapStations = () => {
     const temp = from;
@@ -60,47 +53,33 @@ const SearchForm = ({ onSearch }) => {
     setTo(toCity);
   };
 
-  // cities -> all unique stations
-  const cities = stations;
-
-  // compute destination options based on selected `from` and the trains loaded
-  const destinationOptions = React.useMemo(() => {
+  const destinationOptions = useMemo(() => {
     if (!from || !allTrains.length) return [];
-
     const destSet = new Set();
-
     allTrains.forEach((t) => {
-      // build ordered stops array for the train
       const stops = [];
       if (t.from) stops.push(t.from);
       if (Array.isArray(t.routes)) stops.push(...t.routes.map((r) => r.stopName));
       if (t.to) stops.push(t.to);
-
       const fromIndex = stops.findIndex((s) => s === from);
-      const toIndex = stops.findIndex((s) => s === to);
-
-      // if the train contains the `from` station, add all subsequent stops as possible destinations
       if (fromIndex >= 0) {
-        for (let i = fromIndex + 1; i < stops.length; i += 1) {
+        for (let i = fromIndex + 1; i < stops.length; i++) {
           if (stops[i]) destSet.add(stops[i]);
         }
       }
     });
-
     return Array.from(destSet).sort();
   }, [from, allTrains]);
 
-  // build a lookup of routes[from][to] => array of trains for quick lookup in Popular Routes
-  const routes = React.useMemo(() => {
+  const routes = useMemo(() => {
     const map = {};
     allTrains.forEach((t) => {
       const stops = [];
       if (t.from) stops.push(t.from);
       if (Array.isArray(t.routes)) stops.push(...t.routes.map((r) => r.stopName));
       if (t.to) stops.push(t.to);
-
-      for (let i = 0; i < stops.length; i += 1) {
-        for (let j = i + 1; j < stops.length; j += 1) {
+      for (let i = 0; i < stops.length; i++) {
+        for (let j = i + 1; j < stops.length; j++) {
           const a = stops[i];
           const b = stops[j];
           if (!a || !b) continue;
@@ -120,38 +99,69 @@ const SearchForm = ({ onSearch }) => {
     ['Chennai Central', 'Mysuru']
   ];
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!from || !to || !date || !passengers) return alert('Please fill all fields');
+    onSearch({ from, to, date, passengers });
+  };
+
+  const filteredFromStations = useMemo(() => {
+    if (!from.trim()) return [];
+    return stations.filter((s) =>
+      s.toLowerCase().includes(from.toLowerCase())
+    );
+  }, [from, stations]);
+
+  const filteredToStations = useMemo(() => {
+    if (!to.trim()) return [];
+    return destinationOptions.filter((s) =>
+      s.toLowerCase().includes(to.toLowerCase())
+    );
+  }, [to, destinationOptions]);
+
   return (
     <div className="p-6 md:p-8">
-      {/* Header */}
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Book Your Train Journey</h2>
         <p className="text-gray-600">Find and book trains on real Indian routes</p>
       </div>
 
-      {/* Search Form */}
-      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 relative">
           {/* From */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
               <input
-                list="stations-from"
                 value={from}
                 onChange={(e) => {
                   setFrom(e.target.value);
+                  setShowFromDropdown(!!e.target.value);
                   setTo('');
                 }}
+                onFocus={() => setShowFromDropdown(!!from)}
+                onBlur={() => setTimeout(() => setShowFromDropdown(false), 150)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Start typing station name"
+                placeholder="Enter departure station"
                 required
               />
-              <datalist id="stations-from">
-                {cities.map((city) => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
+              {showFromDropdown && filteredFromStations.length > 0 && (
+                <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {filteredFromStations.map((station) => (
+                    <li
+                      key={station}
+                      onMouseDown={() => {
+                        setFrom(station);
+                        setShowFromDropdown(false);
+                      }}
+                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-gray-700"
+                    >
+                      {station}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
@@ -172,19 +182,34 @@ const SearchForm = ({ onSearch }) => {
             <div className="relative">
               <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
               <input
-                list="stations-to"
                 value={to}
-                onChange={(e) => setTo(e.target.value)}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  setShowToDropdown(!!e.target.value);
+                }}
+                onFocus={() => setShowToDropdown(!!to)}
+                onBlur={() => setTimeout(() => setShowToDropdown(false), 150)}
                 disabled={!from}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder={from ? 'Start typing destination station' : 'Select departure first'}
+                placeholder={from ? 'Enter destination station' : 'Select departure first'}
                 required
               />
-              <datalist id="stations-to">
-                {destinationOptions.map((city) => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
+              {showToDropdown && filteredToStations.length > 0 && (
+                <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {filteredToStations.map((station) => (
+                    <li
+                      key={station}
+                      onMouseDown={() => {
+                        setTo(station);
+                        setShowToDropdown(false);
+                      }}
+                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-gray-700"
+                    >
+                      {station}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
