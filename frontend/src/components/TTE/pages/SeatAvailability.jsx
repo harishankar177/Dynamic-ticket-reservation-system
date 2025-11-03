@@ -1,283 +1,275 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTTE } from '../context/TTEContext';
-import { Armchair, Plus, Search } from 'lucide-react';
+import { Armchair, CheckCircle2, XCircle, AlertCircle, Filter } from 'lucide-react';
 
 const SeatAvailability = () => {
-  const { currentDuty, seatAvailability, addSeatAvailability, updateSeatAvailability } = useTTE();
-  const [showForm, setShowForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({
-    coachNumber: '',
-    seatNumber: '',
-    fromStation: '',
-    toStation: '',
-    status: 'available',
-    soldTo: '',
-    amountCollected: '',
-  });
+  // Safe defaults to prevent undefined crashes
+  const { currentDuty, passengers = [] } = useTTE() || {};
+  const coachNumbers = currentDuty?.coachNumbers || [];
+  const [selectedCoach, setSelectedCoach] = useState(coachNumbers[0] || '');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!currentDuty) return;
+  const coachData = useMemo(() => {
+    if (!selectedCoach) return { totalSeats: 0, occupiedSeats: [], vacantSeats: [] };
 
-    addSeatAvailability({
-      ...formData,
-      dutyAssignmentId: currentDuty.id,
-      amountCollected: formData.amountCollected
-        ? parseFloat(formData.amountCollected)
-        : undefined,
+    const totalSeats = 72;
+    const coachPassengers = Array.isArray(passengers)
+      ? passengers.filter((p) => p?.coachNumber === selectedCoach)
+      : [];
+
+    const occupiedSeats = [];
+    const seatNumbersMap = new Map();
+
+    coachPassengers.forEach((p) => {
+      if (p?.seatNumber) seatNumbersMap.set(p.seatNumber, p);
     });
 
-    setFormData({
-      coachNumber: '',
-      seatNumber: '',
-      fromStation: '',
-      toStation: '',
-      status: 'available',
-      soldTo: '',
-      amountCollected: '',
-    });
-    setShowForm(false);
+    for (let i = 1; i <= totalSeats; i++) {
+      const seatNum = i.toString();
+      const passenger = seatNumbersMap.get(seatNum);
+      if (passenger) {
+        occupiedSeats.push({
+          seatNumber: seatNum,
+          passenger,
+          status: passenger?.attendanceStatus?.trim() || 'unchecked',
+        });
+      }
+    }
+
+    const occupiedSeatNumbers = new Set(occupiedSeats.map((s) => parseInt(s.seatNumber)));
+    const vacantSeats = [];
+    for (let i = 1; i <= totalSeats; i++) {
+      if (!occupiedSeatNumbers.has(i)) vacantSeats.push(i.toString());
+    }
+
+    return { totalSeats, occupiedSeats, vacantSeats };
+  }, [selectedCoach, passengers]);
+
+  const stats = useMemo(() => {
+    const present = coachData.occupiedSeats.filter((s) => s.status === 'present').length;
+    const absent = coachData.occupiedSeats.filter((s) => s.status === 'absent').length;
+    const unchecked = coachData.occupiedSeats.filter((s) => s.status === 'unchecked').length;
+    const vacant = coachData.vacantSeats.length;
+    const occupied = coachData.occupiedSeats.length;
+
+    return { present, absent, unchecked, vacant, occupied, total: coachData.totalSeats };
+  }, [coachData]);
+
+  const getSeatLayout = () => {
+    const seats = [];
+    for (let i = 1; i <= coachData.totalSeats; i++) {
+      seats.push({ number: i, type: 'seat' });
+      if (i % 4 === 0 && i !== coachData.totalSeats) seats.push({ number: -1, type: 'aisle' });
+    }
+    return seats;
   };
 
-  const markAsSold = (id) => {
-    const soldTo = prompt('Enter passenger name:');
-    const amount = prompt('Enter amount collected (₹):');
+  const getSeatStatus = (seatNumber) => {
+    const seatStr = seatNumber.toString();
+    const occupied = coachData.occupiedSeats.find((s) => s.seatNumber === seatStr);
+    if (occupied) return { status: occupied.status, passenger: occupied.passenger };
+    return { status: 'vacant' };
+  };
 
-    if (soldTo && amount) {
-      updateSeatAvailability(id, {
-        status: 'sold',
-        soldTo,
-        amountCollected: parseFloat(amount),
-      });
+  // 🟡 Updated: More visible and consistent colors
+  const getSeatColor = (status) => {
+    switch (status) {
+      case 'vacant':
+        return 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200';
+      case 'present':
+        return 'bg-green-500 border-green-600 text-white hover:bg-green-600';
+      case 'absent':
+        return 'bg-red-500 border-red-600 text-white hover:bg-red-600';
+      case 'unchecked':
+        return 'bg-yellow-500 border-yellow-600 text-yellow-900 hover:bg-yellow-400';
+      default:
+        return 'bg-slate-100 border-slate-300 text-slate-600';
     }
   };
 
-  const filteredSeats = seatAvailability.filter(
-    (seat) =>
-      seat.coachNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      seat.seatNumber.includes(searchTerm) ||
-      seat.fromStation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      seat.toStation.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const availableSeats = seatAvailability.filter((s) => s.status === 'available').length;
-  const soldSeats = seatAvailability.filter((s) => s.status === 'sold').length;
-  const totalRevenue = seatAvailability
-    .filter((s) => s.status === 'sold')
-    .reduce((sum, s) => sum + (s.amountCollected || 0), 0);
-
   return (
     <div className="p-8">
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          <Armchair className="w-8 h-8 text-orange-500" />
-          Seat Availability Management
+          <Armchair className="w-8 h-8 text-blue-500" />
+          Seat Availability
         </h1>
-        <p className="text-slate-600">Manage vacant seats and sell tickets during station stops</p>
+        <p className="text-slate-600">
+          View vacant and occupied seats for{' '}
+          <span className="font-semibold text-slate-800">
+            {currentDuty?.trainNumber || 'N/A'} - {currentDuty?.trainName || 'N/A'}
+          </span>
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white">
-          <p className="text-blue-100 text-sm mb-1">Available Seats</p>
-          <p className="text-3xl font-bold">{availableSeats}</p>
-          <p className="text-blue-100 text-xs mt-2">Ready to sell</p>
-        </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-sm p-6 text-white">
-          <p className="text-green-100 text-sm mb-1">Sold En Route</p>
-          <p className="text-3xl font-bold">{soldSeats}</p>
-          <p className="text-green-100 text-xs mt-2">Seats sold during journey</p>
-        </div>
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-sm p-6 text-white">
-          <p className="text-orange-100 text-sm mb-1">Revenue Collected</p>
-          <p className="text-3xl font-bold">₹{totalRevenue.toFixed(2)}</p>
-          <p className="text-orange-100 text-xs mt-2">From seat sales</p>
-        </div>
+      {/* Coach Selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-slate-700 mb-2">Select Coach</label>
+        <select
+          value={selectedCoach}
+          onChange={(e) => setSelectedCoach(e.target.value)}
+          className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-xs"
+        >
+          {coachNumbers.length > 0 ? (
+            coachNumbers.map((coach) => (
+              <option key={coach} value={coach}>
+                Coach {coach}
+              </option>
+            ))
+          ) : (
+            <option disabled>No coaches available</option>
+          )}
+        </select>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search by coach, seat, or station..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              />
-            </div>
-          </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        {[
+          { label: 'Total Seats', value: stats.total, icon: Armchair, color: 'blue' },
+          { label: 'Present', value: stats.present, icon: CheckCircle2, color: 'green' },
+          { label: 'Absent', value: stats.absent, icon: XCircle, color: 'red' },
+          { label: 'Not Checked', value: stats.unchecked, icon: AlertCircle, color: 'yellow' },
+          { label: 'Vacant', value: stats.vacant, icon: Filter, color: 'slate' },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div
+            key={label}
+            className={`bg-gradient-to-br from-${color}-500 to-${color}-600 rounded-xl shadow-sm p-5 text-white`}
           >
-            <Plus className="w-5 h-5" />
-            Add Available Seat
-          </button>
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-${color}-100 text-sm`}>{label}</p>
+              <Icon className={`w-5 h-5 text-${color}-200`} />
+            </div>
+            <p className="text-3xl font-bold">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Legend</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { color: 'slate', label: 'Vacant', desc: 'Available', icon: Armchair },
+            { color: 'green', label: 'Present', desc: 'Occupied', icon: CheckCircle2 },
+            { color: 'red', label: 'Absent', desc: 'Can allocate', icon: XCircle },
+            { color: 'yellow', label: 'Unchecked', desc: 'Not verified', icon: AlertCircle },
+          ].map(({ color, label, desc, icon: Icon }) => (
+            <div key={label} className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-lg bg-${color}-500 border-2 border-${color}-600 flex items-center justify-center`}
+              >
+                <Icon className={`w-5 h-5 text-${color === 'yellow' ? 'yellow-900' : 'white'}`} />
+              </div>
+              <div>
+                <p className="font-medium text-slate-800">{label}</p>
+                <p className="text-xs text-slate-600">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Seat Map */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-800">
+            Coach {selectedCoach || 'N/A'} - Seat Map
+          </h3>
+          <div className="text-sm text-slate-600">
+            {stats.occupied} occupied • {stats.vacant} vacant
+          </div>
         </div>
 
-        {showForm && (
-          <form onSubmit={handleSubmit} className="bg-slate-50 rounded-lg p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Coach Number *
-                </label>
-                <select
-                  value={formData.coachNumber}
-                  onChange={(e) => setFormData({ ...formData, coachNumber: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Coach</option>
-                  {currentDuty?.coachNumbers.map((coach) => (
-                    <option key={coach} value={coach}>
-                      {coach}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          {getSeatLayout().map((seat, index) => {
+            if (seat.type === 'aisle') return <div key={`aisle-${index}`} className="h-14" />;
+            const seatInfo = getSeatStatus(seat.number);
+            const isVacant = seatInfo.status === 'vacant';
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Seat Number *
-                </label>
-                <input
-                  type="text"
-                  value={formData.seatNumber}
-                  onChange={(e) => setFormData({ ...formData, seatNumber: e.target.value })}
-                  required
-                  placeholder="e.g., 45"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Available From Station *
-                </label>
-                <input
-                  type="text"
-                  value={formData.fromStation}
-                  onChange={(e) => setFormData({ ...formData, fromStation: e.target.value })}
-                  required
-                  placeholder="e.g., New Delhi"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Available To Station *
-                </label>
-                <input
-                  type="text"
-                  value={formData.toStation}
-                  onChange={(e) => setFormData({ ...formData, toStation: e.target.value })}
-                  required
-                  placeholder="e.g., Mumbai Central"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-4">
-              <button
-                type="submit"
-                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors"
+            return (
+              <div
+                key={seat.number}
+                className={`relative h-14 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer ${getSeatColor(
+                  seatInfo.status
+                )}`}
+                title={
+                  isVacant
+                    ? `Seat ${seat.number} - Vacant`
+                    : `Seat ${seat.number} - ${seatInfo.passenger?.name || 'N/A'} (${seatInfo.status})`
+                }
               >
-                Add Seat
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-
-        <div className="space-y-3">
-          {filteredSeats.length > 0 ? (
-            filteredSeats
-              .slice()
-              .reverse()
-              .map((seat) => (
-                <div
-                  key={seat.id}
-                  className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Armchair className="w-5 h-5 text-orange-500" />
-                        <h4 className="font-semibold text-slate-800">
-                          Coach {seat.coachNumber}, Seat {seat.seatNumber}
-                        </h4>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            seat.status === 'available'
-                              ? 'bg-green-100 text-green-700'
-                              : seat.status === 'sold'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-orange-100 text-orange-700'
-                          }`}
-                        >
-                          {seat.status}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-slate-600">From</p>
-                          <p className="font-medium text-slate-800">{seat.fromStation}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-600">To</p>
-                          <p className="font-medium text-slate-800">{seat.toStation}</p>
-                        </div>
-                        {seat.soldTo && (
-                          <div>
-                            <p className="text-slate-600">Sold To</p>
-                            <p className="font-medium text-slate-800">{seat.soldTo}</p>
-                          </div>
-                        )}
-                        {seat.amountCollected && (
-                          <div>
-                            <p className="text-slate-600">Amount</p>
-                            <p className="font-bold text-green-600">
-                              ₹{seat.amountCollected.toFixed(2)}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-xs text-slate-500">
-                        {new Date(seat.updatedAt).toLocaleString()}
-                      </div>
-                      {seat.status === 'available' && (
-                        <button
-                          onClick={() => markAsSold(seat.id)}
-                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded text-sm transition-colors"
-                        >
-                          Mark as Sold
-                        </button>
+                <div className="text-center">
+                  <p className="text-xs font-bold">{seat.number}</p>
+                  {!isVacant && (
+                    <div className="absolute -top-1 -right-1">
+                      {seatInfo.status === 'present' && (
+                        <CheckCircle2 className="w-4 h-4 text-white bg-green-600 rounded-full" />
+                      )}
+                      {seatInfo.status === 'absent' && (
+                        <XCircle className="w-4 h-4 text-white bg-red-600 rounded-full" />
+                      )}
+                      {seatInfo.status === 'unchecked' && (
+                        <AlertCircle className="w-4 h-4 text-yellow-800 bg-yellow-300 rounded-full" />
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
-              ))
-          ) : (
-            <p className="text-center text-slate-500 py-12">
-              No seat availability records yet. Click "Add Available Seat" to start.
-            </p>
-          )}
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Vacant Seats */}
+      {stats.vacant > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mt-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">
+            Vacant Seats ({stats.vacant})
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {coachData.vacantSeats.map((seatNum) => (
+              <div
+                key={seatNum}
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg border border-slate-300 font-mono font-semibold"
+              >
+                {selectedCoach}-{seatNum}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Absent Passengers */}
+      {stats.absent > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mt-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">
+            Absent Passengers - Seats Available for Allocation ({stats.absent})
+          </h3>
+          <div className="space-y-3">
+            {coachData.occupiedSeats
+              .filter((s) => s.status === 'absent')
+              .map((seat) => (
+                <div
+                  key={seat.seatNumber}
+                  className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200"
+                >
+                  <div>
+                    <p className="font-semibold text-slate-800">{seat.passenger?.name || 'N/A'}</p>
+                    <p className="text-sm text-slate-600">
+                      PNR: {seat.passenger?.pnr || 'N/A'} • Age: {seat.passenger?.age || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono font-bold text-red-600">
+                      Seat {selectedCoach}-{seat.seatNumber}
+                    </p>
+                    <p className="text-xs text-red-600">Available for allocation</p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
