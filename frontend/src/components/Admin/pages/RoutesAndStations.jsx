@@ -1,166 +1,198 @@
-import React, { useEffect, useState } from 'react';
-import axios from '../../../axiosInstance';
-import { MapPin, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from "react";
+import axiosInstance from "../../../axiosInstance";
+import { MapPin, Search, ChevronDown, ChevronUp, Train } from "lucide-react";
 
-export default function RoutesAndStations() {
+const RoutesAndStations = () => {
   const [trains, setTrains] = useState([]);
-  const [search, setSearch] = useState('');
-  const [openTrain, setOpenTrain] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedTrain, setExpandedTrain] = useState(null);
+  const [error, setError] = useState(null);
 
-  const fetchTrains = async () => {
-    try {
-      const res = await axios.get('/trains');
-      setTrains(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Failed to fetch trains for routes:', err);
-      setTrains([]);
-    }
-  };
-
+  // ✅ Fetch trains
   useEffect(() => {
+    const fetchTrains = async () => {
+      try {
+        const res = await axiosInstance.get("/trains");
+        setTrains(res.data);
+      } catch (err) {
+        console.error("Error fetching trains:", err);
+        setError("Failed to load train data. Please try again later.");
+      }
+    };
     fetchTrains();
   }, []);
 
-  const filtered = trains.filter(
-    (t) =>
-      t.name?.toLowerCase().includes(search.toLowerCase()) ||
-      t.number?.toString().includes(search) ||
-      t.from?.toLowerCase().includes(search.toLowerCase()) ||
-      t.to?.toLowerCase().includes(search.toLowerCase())
-  );
+  // ✅ Filter
+  const filteredTrains = useMemo(() => {
+    return trains.filter(
+      (t) =>
+        t.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.from?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.to?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [trains, searchTerm]);
+
+  const toggleExpand = (id) => {
+    setExpandedTrain(expandedTrain === id ? null : id);
+  };
+
+  // ✅ Error handler
+  if (error) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <p className="text-red-500 text-lg font-medium">{error}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Routes & Stations</h2>
-          <p className="text-sm text-slate-600">View train routes and station stops</p>
-        </div>
-        <div className="w-80 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* 🔍 Search Bar */}
+        <div className="flex items-center gap-2 mb-6">
+          <Search className="text-gray-500" />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search trains or stations..."
-            className="w-full pl-10 pr-3 py-2 border rounded-lg"
+            type="text"
+            placeholder="Search train by name, number, or route..."
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-400"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        {filtered.length === 0 ? (
-          <div className="text-center text-slate-500 py-8">No trains or routes found.</div>
+        {/* 🚆 Train Cards */}
+        {filteredTrains.length === 0 ? (
+          <p className="text-gray-500 text-center">No trains found.</p>
         ) : (
-          <div className="space-y-3">
-            {filtered.map((train) => (
-              <div key={train._id} className="border rounded-lg overflow-hidden">
-                <button
-                  className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100"
-                  onClick={() => setOpenTrain(openTrain === train._id ? null : train._id)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-md bg-emerald-100 flex items-center justify-center">
-                        <MapPin className="text-emerald-600" />
-                      </div>
-                      <div className={`absolute -top-1 -left-1 w-3 h-3 rounded-full ${
-                        train.isRunning ? 'bg-green-500' : 'bg-gray-400'
-                      }`} />
-                    </div>
-                    <div className="text-left flex-grow">
-                      <div className="font-semibold text-slate-800">{train.name} ({train.number})</div>
-                      <div className="text-xs text-slate-500 flex items-center gap-2">
-                        <span>{train.from} → {train.to}</span>
-                        <span className="mx-2">•</span>
-                        <span className="text-emerald-600">
-                          {train.departureTime ? `Dep: ${train.departureTime}` : 'No departure time'}
-                        </span>
-                        <span className="mx-2">•</span>
-                        <span className="text-blue-600">
-                          {train.arrivalTime ? `Arr: ${train.arrivalTime}` : 'No arrival time'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-slate-500 text-sm">{train.routes?.length || 0} stops</div>
-                    <span className="ml-1">{openTrain === train._id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
-                  </div>
-                </button>
+          filteredTrains.map((train) => (
+            <div
+              key={train._id}
+              className="bg-white shadow-md rounded-lg mb-4 overflow-hidden border border-gray-200"
+            >
+              {/* 🔹 Train Header */}
+              <div
+                onClick={() => toggleExpand(train._id)}
+                className="flex justify-between items-center bg-blue-100 p-4 cursor-pointer hover:bg-blue-200 transition"
+              >
+                <div>
+                  <h2 className="text-lg font-semibold text-blue-800 flex items-center gap-2">
+                    <Train size={18} /> {train.name} ({train.number})
+                  </h2>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {train.from} → {train.to}
+                  </p>
+                </div>
 
-                {openTrain === train._id && (
-                  <div className="p-4 bg-white">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <h4 className="font-semibold text-slate-700 mb-3">Route Summary</h4>
-                        <div className="bg-slate-50 p-3 rounded-lg space-y-2">
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                            <span className="text-slate-600">Departure Time</span>
-                            <span className="font-medium text-emerald-600">{train.departureTime || 'Not Set'}</span>
-                          </div>
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                            <span className="text-slate-600">Arrival Time</span>
-                            <span className="font-medium text-blue-600">{train.arrivalTime || 'Not Set'}</span>
-                          </div>
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                            <span className="text-slate-600">Status</span>
-                            <span className={`font-medium ${train.isRunning ? 'text-green-600' : 'text-gray-600'}`}>
-                              {train.isRunning ? '🟢 Running' : '⚪ Stopped'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Coaches Section */}
-                        <h4 className="font-semibold text-slate-700 mb-3 mt-4">Coach Classes</h4>
-                        <div className="bg-slate-50 p-3 rounded-lg space-y-2">
-                          {train.coaches?.map((coach, idx) => (
-                            coach.count > 0 && (
-                              <div key={idx} className="flex items-center justify-between border-b last:border-b-0 border-slate-200 pb-2 last:pb-0">
-                                <div>
-                                  <span className="font-medium text-slate-700">{coach.type}</span>
-                                  <div className="text-xs text-slate-500">
-                                    {coach.count} coach{coach.count > 1 ? 'es' : ''}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <span className="font-medium text-emerald-600">
-                                    {coach.seatsAvailable}
-                                  </span>
-                                  <div className="text-xs text-slate-500">seats available</div>
-                                </div>
-                              </div>
-                            )
-                          ))}
-                          {!train.coaches?.some(c => c.count > 0) && (
-                            <div className="text-slate-500 text-sm text-center py-2">
-                              No coaches configured
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <h4 className="font-semibold text-slate-700 mb-3">Stops</h4>
-                        <div className="space-y-2">
-                          {(train.routes || []).map((stop, idx) => (
-                            <div key={idx} className="flex items-center justify-between border rounded px-3 py-2 bg-slate-50">
-                              <div>
-                                <div className="font-medium">{stop.stopName || `Stop ${idx + 1}`}</div>
-                                <div className="text-xs text-slate-500">Arrival: {stop.arrival || '—'} • Departure: {stop.departure || '—'}</div>
-                              </div>
-                              <div className="text-sm text-slate-600">{idx + 1}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* ✅ Running Status Badge */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-3 py-1 text-sm font-medium rounded-full ${
+                      train.isRunning
+                        ? "bg-green-100 text-green-700 border border-green-300"
+                        : "bg-red-100 text-red-700 border border-red-300"
+                    }`}
+                  >
+                    {train.isRunning ? "Running" : "Not Running"}
+                  </span>
+                  {expandedTrain === train._id ? (
+                    <ChevronUp className="text-blue-700" />
+                  ) : (
+                    <ChevronDown className="text-blue-700" />
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* 🔽 Expanded Details */}
+              {expandedTrain === train._id && (
+                <div className="p-5 bg-white border-t border-gray-200">
+                  {/* 🗺️ Route Info */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-2 text-gray-800 flex items-center gap-2">
+                      <MapPin className="text-blue-500" /> Route Details
+                    </h3>
+
+                    {Array.isArray(train.routes) && train.routes.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border border-gray-200">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="border px-3 py-2 text-left">Stop</th>
+                              <th className="border px-3 py-2 text-left">Arrival</th>
+                              <th className="border px-3 py-2 text-left">Departure</th>
+                              <th className="border px-3 py-2 text-left">Halt Duration</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {train.routes.map((stop, i) => (
+                              <tr key={i} className="hover:bg-gray-50">
+                                <td className="border px-3 py-2">{stop.stopName || "—"}</td>
+                                <td className="border px-3 py-2">{stop.arrival || "—"}</td>
+                                <td className="border px-3 py-2">{stop.departure || "—"}</td>
+                                <td className="border px-3 py-2 text-gray-600">
+                                  {stop.haltDuration ? `⏱ ${stop.haltDuration}` : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        No route data available.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 🚉 Coaches Info */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-800">
+                      Coach Classes & Prices
+                    </h3>
+
+                    {Array.isArray(train.coaches) && train.coaches.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {train.coaches.map((coach, idx) => (
+                          <div
+                            key={idx}
+                            className="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition"
+                          >
+                            <h4 className="text-blue-700 font-semibold mb-1">
+                              {coach.type || "Unknown"}
+                            </h4>
+                            <p className="text-sm text-gray-700">
+                              Coaches:{" "}
+                              <span className="font-medium">{coach.count || 0}</span>
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              Seats Available:{" "}
+                              <span className="font-medium">
+                                {coach.seatsAvailable || 0}
+                              </span>
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              Price per Seat:{" "}
+                              <span className="font-semibold text-green-700">
+                                ₹{coach.price?.toLocaleString() || "—"}
+                              </span>
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        No coach data available.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
         )}
       </div>
     </div>
   );
-}
+};
+
+export default RoutesAndStations;
