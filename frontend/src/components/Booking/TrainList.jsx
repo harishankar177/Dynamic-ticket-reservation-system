@@ -8,15 +8,6 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const classPrices = {
-    '1A': 3500,
-    '2A': 2200,
-    '3A': 1450,
-    'SL': 850,
-    'CC': 1800,
-    'EC': 2500,
-  };
-
   // Fetch trains from DB
   useEffect(() => {
     let mounted = true;
@@ -30,7 +21,7 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
 
         const allTrains = res.data || [];
 
-        // Filter trains that include both from/to in the right order
+        // Filter trains that include both from/to in correct order
         const matchedTrains = allTrains.filter((train) => {
           const stops = [];
           if (train.from) stops.push(train.from);
@@ -127,6 +118,7 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                 className="bg-gradient-to-r from-white to-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 overflow-hidden"
               >
                 <div className="p-6">
+                  {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <h3 className="text-xl font-bold text-gray-800">{train.name}</h3>
@@ -154,23 +146,27 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                     </div>
                   </div>
 
+                  {/* Timing info */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-800">{train.departure}</p>
-                      <p className="text-gray-600">{searchData.from}</p>
+                      <p className="text-2xl font-bold text-gray-800">{train.departureTime || '—'}</p>
+                      <p className="text-gray-600">{train.from}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-gray-600 font-medium">{train.duration}</p>
+                      <p className="text-gray-600 font-medium">{train.duration || '—'}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-800">{train.arrival}</p>
-                      <p className="text-gray-600">{searchData.to}</p>
+                      <p className="text-2xl font-bold text-gray-800">{train.arrivalTime || '—'}</p>
+                      <p className="text-gray-600">{train.to}</p>
                     </div>
                     <div className="text-center">
                       {isTrainSelected && (
                         <>
                           <p className="text-2xl font-bold text-blue-600">
-                            ₹{classPrices[selectedClass?.className]}
+                            ₹{
+                              train.coaches.find(c => c.type === selectedClass?.className)?.price ??
+                              0
+                            }
                           </p>
                           <p className="text-sm text-gray-600">{selectedClass?.className} Class</p>
                         </>
@@ -178,79 +174,78 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                     </div>
                   </div>
 
+                  {/* Coach + Booking section */}
                   <div className="flex flex-col space-y-4">
-                    <div className="flex flex-wrap gap-3">
-                      {(train.coaches || []).map((coach) => {
-                        const trainClass = coach.type;
-                        const availability = {
-                          available: coach.seatsAvailable ?? 0,
-                          waitlist: coach.waitlist ?? 0,
-                        };
-                        const isSelected =
-                          selectedClass?.trainId === trainId &&
-                          selectedClass?.className === trainClass;
+                    {train.isRunning ? (
+                      <div className="text-center text-emerald-700 font-medium mt-2">
+                        <p>This train is currently running. Booking is disabled.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Coach selection */}
+                        <div className="flex flex-wrap gap-3">
+                          {(train.coaches || []).map((coach) => {
+                            const trainClass = coach.type;
+                            const isSelected =
+                              selectedClass?.trainId === trainId &&
+                              selectedClass?.className === trainClass;
 
-                        return (
-                          <div key={`${trainId}-${trainClass}`} className="flex flex-col items-center">
-                            <button
-                              onClick={() =>
-                                setSelectedClass({ trainId, className: trainClass })
+                            return (
+                              <div key={`${trainId}-${trainClass}`} className="flex flex-col items-center">
+                                <button
+                                  onClick={() => setSelectedClass({ trainId, className: trainClass })}
+                                  className={`px-4 py-2 text-sm font-semibold border-2 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105 ${
+                                    isSelected
+                                      ? 'border-blue-600 bg-blue-600 text-white shadow-lg'
+                                      : getClassColor(trainClass)
+                                  }`}
+                                >
+                                  {trainClass}
+                                </button>
+                                <div className="mt-1 text-xs font-medium text-blue-700">
+                                  ₹{coach.price ?? 0}
+                                </div>
+                                <div className="mt-1 text-xs font-medium text-green-600">
+                                  Seats: {coach.seatsAvailable ?? 0}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Book Now */}
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => {
+                              if (!selectedClass || selectedClass.trainId !== trainId) {
+                                alert('Please select a class first');
+                                return;
                               }
-                              className={`px-4 py-2 text-sm font-semibold border-2 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105 ${
-                                isSelected
-                                  ? 'border-blue-600 bg-blue-600 text-white shadow-lg'
-                                  : getClassColor(trainClass)
-                              }`}
-                            >
-                              {trainClass}
-                            </button>
-                            <div className="mt-1 text-xs font-medium">
-                              {availability.available > 0 ? (
-                                <span className="text-green-600">
-                                  Avail: {availability.available}
-                                </span>
-                              ) : (
-                                <span className="text-red-600">
-                                  WL: {availability.waitlist}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
 
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => {
-                          if (!selectedClass || selectedClass.trainId !== trainId) {
-                            alert('Please select a class first');
-                            return;
-                          }
+                              const selectedCoach = train.coaches.find(
+                                (c) => c.type === selectedClass.className
+                              );
 
-                          const price =
-                            classPrices[selectedClass.className] ||
-                            train.price ||
-                            0;
+                              const trainForBooking = {
+                                ...train,
+                                price: selectedCoach?.price || 0,
+                                selectedClass: selectedClass.className,
+                              };
 
-                          const trainForBooking = {
-                            ...train,
-                            price,
-                            selectedClass: selectedClass.className,
-                          };
-
-                          onSelectTrain(trainForBooking, selectedClass.className);
-                        }}
-                        disabled={!isTrainSelected}
-                        className={`px-8 py-3 rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl ${
-                          isTrainSelected
-                            ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        Book Now
-                      </button>
-                    </div>
+                              onSelectTrain(trainForBooking, selectedClass.className);
+                            }}
+                            disabled={!isTrainSelected}
+                            className={`px-8 py-3 rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl ${
+                              isTrainSelected
+                                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            Book Now
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

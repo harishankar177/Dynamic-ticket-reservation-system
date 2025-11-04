@@ -45,7 +45,7 @@ export default function TrainStatus() {
             </div>
           </button>
 
-          <button
+          <button 
             onClick={() => handleNavigate('pnr')}
             className="group relative overflow-hidden bg-gradient-to-br from-teal-500 to-cyan-600 rounded-3xl shadow-2xl hover:shadow-teal-500/50 transition-all duration-500 hover:scale-105"
           >

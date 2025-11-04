@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axiosInstance from "../../../axiosInstance"; // ✅ use your configured axios instance
+import axiosInstance from "../../../axiosInstance";
 import { Pencil, Trash2, PlusCircle, Train, X } from "lucide-react";
 
 const TrainManagement = () => {
@@ -81,6 +81,17 @@ const TrainManagement = () => {
         { type: "", count: 0, seatsAvailable: 0, price: 0 },
       ],
     });
+  };
+
+  // ✅ Remove Route / Coach
+  const removeRoute = (index) => {
+    const updatedRoutes = newTrain.routes.filter((_, i) => i !== index);
+    setNewTrain({ ...newTrain, routes: updatedRoutes });
+  };
+
+  const removeCoach = (index) => {
+    const updatedCoaches = newTrain.coaches.filter((_, i) => i !== index);
+    setNewTrain({ ...newTrain, coaches: updatedCoaches });
   };
 
   // ✅ Clean Data Before Save
@@ -285,7 +296,7 @@ const TrainManagement = () => {
                 {newTrain.routes.map((route, index) => (
                   <div
                     key={index}
-                    className="grid md:grid-cols-4 gap-3 mb-2 border p-2 rounded-md bg-gray-50"
+                    className="grid md:grid-cols-5 gap-3 mb-2 border p-2 rounded-md bg-gray-50 items-center"
                   >
                     <input
                       type="text"
@@ -319,6 +330,13 @@ const TrainManagement = () => {
                       onChange={(e) => handleRouteChange(index, e)}
                       className="border p-2 rounded-md"
                     />
+                    <button
+                      type="button"
+                      onClick={() => removeRoute(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 ))}
                 <button
@@ -336,7 +354,7 @@ const TrainManagement = () => {
                 {newTrain.coaches.map((coach, index) => (
                   <div
                     key={index}
-                    className="grid md:grid-cols-4 gap-3 mb-2 border p-2 rounded-md bg-gray-50"
+                    className="grid md:grid-cols-5 gap-3 mb-2 border p-2 rounded-md bg-gray-50 items-center"
                   >
                     <input
                       type="text"
@@ -370,6 +388,13 @@ const TrainManagement = () => {
                       onChange={(e) => handleCoachChange(index, e)}
                       className="border p-2 rounded-md"
                     />
+                    <button
+                      type="button"
+                      onClick={() => removeCoach(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 ))}
                 <button
