@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "framer-motion": "^12.23.21",
+    "html2pdf.js": "^0.12.1",
     "lucide-react": "^0.544.0",
     "nodemailer": "^7.0.6",
     "react": "^19.1.1",

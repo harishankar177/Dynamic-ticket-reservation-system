@@ -21,6 +21,9 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
 
         const allTrains = res.data || [];
 
+        // Normalize station names to uppercase and trim spaces
+        const normalize = (v) => (v || '').toString().trim().toUpperCase();
+
         // Filter trains that include both from/to in correct order
         const matchedTrains = allTrains.filter((train) => {
           const stops = [];
@@ -29,8 +32,9 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
             stops.push(...train.routes.map((r) => r.stopName));
           if (train.to) stops.push(train.to);
 
-          const fromIndex = stops.findIndex((s) => s === searchData.from);
-          const toIndex = stops.findIndex((s) => s === searchData.to);
+          const normalizedStops = stops.map(normalize);
+          const fromIndex = normalizedStops.findIndex((s) => s === normalize(searchData.from));
+          const toIndex = normalizedStops.findIndex((s) => s === normalize(searchData.to));
           return fromIndex >= 0 && toIndex > fromIndex;
         });
 
@@ -164,8 +168,7 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                         <>
                           <p className="text-2xl font-bold text-blue-600">
                             ₹{
-                              train.coaches.find(c => c.type === selectedClass?.className)?.price ??
-                              0
+                              train.coaches.find(c => c.type === selectedClass?.className)?.price ?? 0
                             }
                           </p>
                           <p className="text-sm text-gray-600">{selectedClass?.className} Class</p>
@@ -226,10 +229,22 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                                 (c) => c.type === selectedClass.className
                               );
 
+                              // ✅ Clean merged data for PassengerDetails page
                               const trainForBooking = {
-                                ...train,
-                                price: selectedCoach?.price || 0,
+                                trainId,
+                                trainName: train.name,
+                                trainNumber: train.number,
+                                from: train.from,
+                                to: train.to,
+                                departureTime: train.departureTime,
+                                arrivalTime: train.arrivalTime,
+                                duration: train.duration,
                                 selectedClass: selectedClass.className,
+                                price: selectedCoach?.price || 0,
+                                seatsAvailable: selectedCoach?.seatsAvailable || 0,
+                                coachDetails: train.coaches,
+                                date: searchData.date,
+                                passengers: searchData.passengers,
                               };
 
                               onSelectTrain(trainForBooking, selectedClass.className);

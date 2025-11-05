@@ -3,7 +3,7 @@ import { User, Phone, Calendar, Train } from 'lucide-react';
 
 const PassengerDetails = ({
   passengerCount = 1,
-  selectedTrains = [],
+  selectedTrains = [], // now expects array of train objects
   totalAmount = 0,
   onSubmit
 }) => {
@@ -18,21 +18,19 @@ const PassengerDetails = ({
   );
 
   const handleChange = (index, field, value) => {
-    // Restrict name field to alphabets and spaces only
-    if (field === 'name') {
-      value = value.replace(/[^a-zA-Z\s]/g, '');
-    }
-
+    if (field === 'name') value = value.replace(/[^a-zA-Z\s]/g, '');
     const updated = [...passengers];
     updated[index][field] = value;
     setPassengers(updated);
   };
 
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 50;
+  const validateEmail = (email) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 50;
   const validatePhone = (phone) => /^\d{10}$/.test(phone);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i];
       if (!p.name || !p.age || !p.gender) {
@@ -64,6 +62,9 @@ const PassengerDetails = ({
     onSubmit(passengers);
   };
 
+  // pick first train for header display
+  const mainTrain = selectedTrains[0] || {};
+
   return (
     <div className="max-w-5xl mx-auto p-6">
 
@@ -90,15 +91,18 @@ const PassengerDetails = ({
           </div>
           <div>
             <h2 className="text-xl font-semibold">
-              {selectedTrains[0] || 'Selected Train'}
+              {mainTrain.name || 'Train Name'}
             </h2>
             <p className="text-sm opacity-90">
-              Train #{selectedTrains.length > 1 ? selectedTrains.join(', ') : 'N/A'}
+              Train No: {mainTrain.number || 'N/A'}
+            </p>
+            <p className="text-sm opacity-90">
+              Coach: {mainTrain.selectedClass || 'N/A'}
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold">₹{totalAmount}</p>
+          <p className="text-2xl font-bold">₹{mainTrain.selectedPrice || totalAmount}</p>
           <p className="text-sm opacity-80">Total Fare</p>
         </div>
       </div>
@@ -111,7 +115,7 @@ const PassengerDetails = ({
         {passengers.map((p, index) => (
           <div key={index} className="p-6 border rounded-lg space-y-4">
             <h3 className="font-medium text-lg">
-              Passenger {index + 1} (Train: {selectedTrains[index] || 'N/A'})
+              Passenger {index + 1}
             </h3>
 
             {/* Name */}
@@ -126,8 +130,6 @@ const PassengerDetails = ({
                   onChange={(e) => handleChange(index, 'name', e.target.value)}
                   className="flex-1 p-2 border rounded w-full"
                   required
-                  pattern="[A-Za-z\s]+"
-                  title="Name should contain only letters and spaces"
                 />
               </div>
             </div>
