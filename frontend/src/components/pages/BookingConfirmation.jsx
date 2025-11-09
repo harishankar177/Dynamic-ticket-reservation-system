@@ -8,7 +8,10 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
     if (container) {
       container.style.animation = 'booking-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
     }
-  }, []);
+
+    // Debug log to check the data structure
+    console.log('Booking Data:', bookingData);
+  }, [bookingData]);
 
   // Early return / fallback when bookingData is not provided
   if (!bookingData) {
@@ -62,18 +65,32 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
       </div>
 
       <div className="max-w-4xl mx-auto">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl p-6">
+        <div 
+          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl p-6 shadow-lg"
+          style={{ animation: 'train-details-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards 0.3s' }}
+        >
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Train size={32} />
-              <div>
-                <h3 className="text-xl font-bold">{bookingData.selectedTrain.name}</h3>
-                <p className="text-blue-100">Train #{bookingData.selectedTrain.number}</p>
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm" style={{ animation: 'detail-item-entrance 0.6s ease-out forwards 0.5s', opacity: 0 }}>
+                <Train size={32} className="text-white" />
+              </div>
+              <div style={{ animation: 'detail-item-entrance 0.6s ease-out forwards 0.7s', opacity: 0 }}>
+                <h3 className="text-2xl font-bold tracking-tight">
+                  {bookingData?.selectedTrain?.trainName || bookingData?.selectedTrain?.name || 'Train Name'}
+                </h3>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="px-2 py-0.5 bg-white/20 rounded text-sm font-medium backdrop-blur-sm">
+                    Train #{bookingData?.selectedTrain?.trainNumber || bookingData?.selectedTrain?.number || 'N/A'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-white/20 rounded text-sm font-medium backdrop-blur-sm">
+                    {bookingData?.selectedTrain?.selectedClass || 'N/A'}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">₹{bookingData.totalAmount}</p>
-              <p className="text-blue-100">Total Fare</p>
+            <div className="text-right" style={{ animation: 'detail-item-entrance 0.6s ease-out forwards 0.9s', opacity: 0 }}>
+              <p className="text-3xl font-bold">₹{bookingData.totalAmount}</p>
+              <p className="text-blue-100 font-medium">Total Fare</p>
             </div>
           </div>
         </div>
@@ -85,9 +102,9 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
               <div className="text-center">
                 <div className="flex items-center justify-center space-x-2 mb-2">
                   <MapPin className="text-green-600" size={20} />
-                  <p className="font-semibold text-gray-800">{bookingData.searchData.from}</p>
+                  <p className="font-semibold text-gray-800">{bookingData?.searchData?.from || bookingData?.selectedTrain?.from || '—'}</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-800">{bookingData.selectedTrain.departure}</p>
+                <p className="text-2xl font-bold text-gray-800">{bookingData?.selectedTrain?.departureTime || bookingData?.selectedTrain?.departure || '—'}</p>
                 <p className="text-gray-600">Departure</p>
               </div>
 
