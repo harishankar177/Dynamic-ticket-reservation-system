@@ -3,6 +3,69 @@ import { Clock, MapPin, Star, Info } from 'lucide-react';
 import axiosInstance from '../../axiosInstance';
 
 const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
+  // Helper function to get specific station timing
+  const getStationTime = (train, stationName, type = 'arrival') => {
+    if (!train || !stationName) return null;
+    
+    // Normalize station names for comparison
+    const normalizeStation = str => str?.trim().toLowerCase();
+    const searchStation = normalizeStation(stationName);
+    
+    // Check origin station
+    if (normalizeStation(train.from) === searchStation) {
+      return train.departureTime;
+    }
+    
+    // Check destination station
+    if (normalizeStation(train.to) === searchStation) {
+      return train.arrivalTime;
+    }
+    
+    // Search in route stops
+    const routeStop = train.routes?.find(stop => 
+      normalizeStation(stop.stopName) === searchStation
+    );
+    
+    return routeStop ? (type === 'arrival' ? routeStop.arrival : routeStop.departure) : null;
+  };
+  // Format duration from minutes to "Hh Mm" or "Xm"
+  const formatDuration = (minutes) => {
+    if (minutes == null || isNaN(minutes)) return '—';
+    const mins = Math.max(0, Math.round(minutes));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  };
+
+  // Compute segment duration between two stations (returns minutes)
+  const computeSegmentMinutes = (train, fromStation, toStation) => {
+    if (!train || !fromStation || !toStation) return null;
+    const normalize = s => s?.toString().trim().toLowerCase();
+
+    // build full stops
+    const stops = [];
+    if (train.from) stops.push({ stopName: train.from, departure: train.departureTime, arrival: train.departureTime });
+    if (Array.isArray(train.routes)) stops.push(...train.routes.map(r => ({ stopName: r.stopName, arrival: r.arrival, departure: r.departure })));
+    if (train.to) stops.push({ stopName: train.to, arrival: train.arrivalTime, departure: train.arrivalTime });
+
+    const normalizedStops = stops.map(s => normalize(s.stopName));
+    const fromIdx = normalizedStops.findIndex(s => s === normalize(fromStation));
+    const toIdx = normalizedStops.findIndex(s => s === normalize(toStation));
+    if (fromIdx < 0 || toIdx < 0 || toIdx <= fromIdx) return null;
+
+    const start = stops[fromIdx].departure || stops[fromIdx].arrival;
+    const end = stops[toIdx].arrival || stops[toIdx].departure;
+    if (!start || !end) return null;
+
+    const [sh, sm] = (start || '00:00').split(':').map(Number);
+    const [eh, em] = (end || '00:00').split(':').map(Number);
+    let startM = sh * 60 + (sm || 0);
+    let endM = eh * 60 + (em || 0);
+    // handle next-day arrival
+    if (endM < startM) endM += 24 * 60;
+    return endM - startM;
+  };
   const [selectedClass, setSelectedClass] = useState(null);
   const [trains, setTrains] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +141,22 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
       mounted = false;
     };
   }, [searchData]);
+
+  // Format time to 24-hour format with leading zeros
+  const formatTime = (time) => {
+    if (!time) return '—';
+    // If time is already in correct format, return as is
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+      return time.padStart(5, '0'); // Ensure 5 characters (HH:MM)
+    }
+    try {
+      const [hours, minutes] = time.split(':').map(Number);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } catch (e) {
+      console.error('Time format error:', e);
+      return '—';
+    }
+  };
 
   const getClassColor = (trainClass) => {
     switch (trainClass) {
@@ -198,17 +277,29 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
                     <div className="text-center bg-white p-3 rounded-lg shadow-sm">
                       <p className="text-sm text-gray-500 mb-1">Departure</p>
-                      <p className="text-2xl font-bold text-gray-800">{train.departureTime || '—'}</p>
-                      <p className="text-blue-600 font-medium mt-1">{train.from}</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {formatTime(getStationTime(train, searchData.from, 'departure') || train.departureTime)}
+                      </p>
+                      <p className="text-blue-600 font-medium mt-1">{searchData.from}</p>
                     </div>
                     <div className="text-center bg-white p-3 rounded-lg shadow-sm">
                       <p className="text-sm text-gray-500 mb-1">Duration</p>
-                      <p className="text-xl font-bold text-indigo-600">{train.duration || '—'}</p>
+                      <p className="text-xl font-bold text-indigo-600">
+                        {(() => {
+                          const mins = computeSegmentMinutes(train, searchData.from, searchData.to);
+                          return mins != null ? formatDuration(mins) : (train.duration || '—');
+                        })()}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {train.routes?.length ? `${train.routes.length} stops` : ''}
+                      </p>
                     </div>
                     <div className="text-center bg-white p-3 rounded-lg shadow-sm">
                       <p className="text-sm text-gray-500 mb-1">Arrival</p>
-                      <p className="text-2xl font-bold text-gray-800">{train.arrivalTime || '—'}</p>
-                      <p className="text-blue-600 font-medium mt-1">{train.to}</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {formatTime(getStationTime(train, searchData.to, 'arrival') || train.arrivalTime)}
+                      </p>
+                      <p className="text-blue-600 font-medium mt-1">{searchData.to}</p>
                     </div>
                     <div className="text-center">
                       {isTrainSelected && (
@@ -340,15 +431,30 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                               );
 
                               // ✅ Clean merged data for PassengerDetails page
+                              // build full stops array (include from and to)
+                              const stops = [];
+                              if (train.from) stops.push({ stopName: train.from, arrival: train.departureTime, departure: train.departureTime });
+                              if (Array.isArray(train.routes)) stops.push(...train.routes.map(r => ({ stopName: r.stopName, arrival: r.arrival, departure: r.departure, haltDuration: r.haltDuration })));
+                              if (train.to) stops.push({ stopName: train.to, arrival: train.arrivalTime, departure: train.arrivalTime });
+
+                              const normalize = (v) => (v || '').toString().trim().toUpperCase();
+                              const normalizedStops = stops.map(s => normalize(s.stopName));
+                              const fromIdx = normalizedStops.findIndex(s => s === normalize(searchData.from));
+                              const toIdx = normalizedStops.findIndex(s => s === normalize(searchData.to));
+
+                              const selectedStops = (fromIdx >= 0 && toIdx > fromIdx) ? stops.slice(fromIdx, toIdx + 1) : [];
+
                               const trainForBooking = {
                                 trainId,
                                 trainName: train.name,
                                 trainNumber: train.number,
-                                from: train.from,
-                                to: train.to,
-                                departureTime: train.departureTime,
-                                arrivalTime: train.arrivalTime,
-                                duration: train.duration,
+                                from: searchData.from,
+                                to: searchData.to,
+                                // station-specific times (fallback to train-level times)
+                                departureTime: formatTime((selectedStops[0] && selectedStops[0].departure) || train.departureTime),
+                                arrivalTime: formatTime((selectedStops[selectedStops.length - 1] && selectedStops[selectedStops.length - 1].arrival) || train.arrivalTime),
+                                // duration in minutes for the selected segment (number). fallback to train.duration if numeric
+                                duration: (selectedStops.length ? computeSegmentMinutes(train, searchData.from, searchData.to) : (typeof train.duration === 'number' ? train.duration : null)),
                                 selectedClass: selectedClass.className,
                                 // Calculate price based on journey type
                                 price: (() => {
@@ -407,6 +513,9 @@ const TrainList = ({ searchData, onSelectTrain, onShowLiveStatus }) => {
                                 coachDetails: train.coaches,
                                 date: searchData.date,
                                 passengers: searchData.passengers,
+                                // include the stops and full route for the booking segment
+                                selectedStops,
+                                fullRoute: stops,
                               };
 
                               onSelectTrain(trainForBooking, selectedClass.className);

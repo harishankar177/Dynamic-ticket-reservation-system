@@ -2,6 +2,22 @@ import React from 'react';
 import { CheckCircle, Download, Mail, Phone, Calendar, MapPin, Train } from 'lucide-react';
 
 const BookingConfirmation = ({ bookingData, onNewBooking }) => {
+  // Format time to 24-hour format (HH:mm)
+  const formatTime = (time) => {
+    if (!time) return '—';
+    // If time is already in correct format, return as is
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+      return time.padStart(5, '0'); // Ensure 5 characters (HH:MM)
+    }
+    try {
+      const [hours, minutes] = time.split(':').map(Number);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } catch (e) {
+      console.error('Time format error:', e);
+      return '—';
+    }
+  };
+
   React.useEffect(() => {
     // Add entrance animation class when component mounts
     const container = document.getElementById('bookingConfirmationContainer');
@@ -11,7 +27,70 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
 
     // Debug log to check the data structure
     console.log('Booking Data:', bookingData);
+    
+    if (bookingData?.selectedTrain) {
+      console.log('Train Times:', {
+        departure: formatTime(bookingData.selectedTrain.departureTime),
+        arrival: formatTime(bookingData.selectedTrain.arrivalTime)
+      });
+    }
   }, [bookingData]);
+
+  // prefer the selectedStops passed from TrainList (station-to-station segment)
+  const routeStops = (bookingData?.selectedTrain?.selectedStops && bookingData.selectedTrain.selectedStops.length)
+    ? bookingData.selectedTrain.selectedStops
+    : (bookingData?.selectedTrain?.routes || []);
+
+  // format duration minutes -> "Hh Mm" or "Xm"
+  const formatDuration = (minutes) => {
+    if (minutes == null || isNaN(minutes)) return '—';
+    const mins = Math.max(0, Math.round(minutes));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  };
+
+  // compute minutes between first stop departure and last stop arrival
+  // If a stop in `stops` is missing departure/arrival times, try to resolve
+  // them from the provided fullRoute (if available) or fallback to train-level
+  // departure/arrival times. This ensures the duration uses the actual
+  // station times when available.
+  const computeRouteMinutes = (stops, fullRoute = []) => {
+    if (!stops || stops.length === 0) return null;
+
+    const findTime = (stop, prefer) => {
+      // prefer is 'departure' or 'arrival'
+      if (!stop) return null;
+      if (stop[prefer]) return stop[prefer];
+
+      // try the other field on the same stop
+      if (stop[prefer === 'departure' ? 'arrival' : 'departure']) {
+        return stop[prefer === 'departure' ? 'arrival' : 'departure'];
+      }
+
+      // lookup by stopName in fullRoute
+      if (fullRoute && Array.isArray(fullRoute)) {
+        const name = (stop.stopName || '').toString().trim().toLowerCase();
+        const found = fullRoute.find(fr => (fr.stopName || '').toString().trim().toLowerCase() === name);
+        if (found) return found[prefer] || found[prefer === 'departure' ? 'arrival' : 'departure'] || null;
+      }
+
+      // no match
+      return null;
+    };
+
+    const start = findTime(stops[0], 'departure') || null;
+    const end = findTime(stops[stops.length - 1], 'arrival') || null;
+    if (!start || !end) return null;
+
+    const [sh, sm] = (start || '00:00').split(':').map(Number);
+    const [eh, em] = (end || '00:00').split(':').map(Number);
+    let startM = (Number.isFinite(sh) ? sh : 0) * 60 + (Number.isFinite(sm) ? sm : 0);
+    let endM = (Number.isFinite(eh) ? eh : 0) * 60 + (Number.isFinite(em) ? em : 0);
+    if (endM < startM) endM += 24 * 60; // cross-midnight
+    return endM - startM;
+  };
 
   // Early return / fallback when bookingData is not provided
   if (!bookingData) {
@@ -99,40 +178,70 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
           <div className="p-6 border-b border-gray-200">
             <h4 className="text-lg font-semibold text-gray-800 mb-4">Journey Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
+              <div className="text-center transform hover:scale-105 transition-all duration-300">
                 <div className="flex items-center justify-center space-x-2 mb-2">
                   <MapPin className="text-green-600" size={20} />
-                  <p className="font-semibold text-gray-800">{bookingData?.searchData?.from || bookingData?.selectedTrain?.from || '—'}</p>
+                  <p className="font-semibold text-gray-800">{bookingData?.selectedTrain?.from || '—'}</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-800">{bookingData?.selectedTrain?.departureTime || bookingData?.selectedTrain?.departure || '—'}</p>
-                <p className="text-gray-600">Departure</p>
+                <div className="bg-green-50 rounded-lg p-3 shadow-sm">
+                  <p className="text-2xl font-bold text-gray-800">
+                    {formatTime(routeStops[0]?.departure || bookingData?.selectedTrain?.departureTime)}
+                  </p>
+                  <p className="text-sm text-green-600 font-medium">Departure Time</p>
+                </div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center transform hover:scale-105 transition-all duration-300">
                 <div className="flex items-center justify-center space-x-2 mb-2">
                   <Calendar className="text-blue-600" size={20} />
                   <p className="font-semibold text-gray-800">
-                    {new Date(bookingData.searchData.date).toLocaleDateString('en-IN', {
+                    {new Date(bookingData?.searchData?.date).toLocaleDateString('en-IN', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric'
                     })}
                   </p>
                 </div>
-                <p className="text-lg font-medium text-gray-600">{bookingData.selectedTrain.duration}</p>
-                <p className="text-gray-600">Duration</p>
+                <div className="bg-blue-50 rounded-lg p-3 shadow-sm">
+                  <p className="text-lg font-bold text-gray-800">
+                    {(() => {
+                      // Only compute/ display segment duration for station-to-station bookings.
+                      // Prefer a numeric duration passed in (TrainList sets this for selectedStops).
+                      const hasSelectedStops = bookingData?.selectedTrain?.selectedStops && bookingData.selectedTrain.selectedStops.length > 0;
+                      let mins = null;
+                      if (typeof bookingData?.selectedTrain?.duration === 'number') {
+                        mins = bookingData.selectedTrain.duration;
+                      } else if (hasSelectedStops) {
+                        mins = computeRouteMinutes(routeStops);
+                      } else {
+                        mins = null; // do not compute full-train duration here
+                      }
+                      return mins != null ? formatDuration(mins) : '—';
+                    })()}
+                  </p>
+                  <p className="text-sm text-blue-600 font-medium">Journey Duration</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {routeStops?.length ? `${routeStops.length} stops` : ''}
+                  </p>
+                </div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center transform hover:scale-105 transition-all duration-300">
                 <div className="flex items-center justify-center space-x-2 mb-2">
                   <MapPin className="text-red-600" size={20} />
-                  <p className="font-semibold text-gray-800">{bookingData.searchData.to}</p>
+                  <p className="font-semibold text-gray-800">{bookingData?.selectedTrain?.to || '—'}</p>
                 </div>
-                <p className="text-2xl font-bold text-gray-800">{bookingData.selectedTrain.arrival}</p>
-                <p className="text-gray-600">Arrival</p>
+                <div className="bg-red-50 rounded-lg p-3 shadow-sm">
+                  <p className="text-2xl font-bold text-gray-800">
+                    {formatTime(routeStops[routeStops.length - 1]?.arrival || bookingData?.selectedTrain?.arrivalTime)}
+                  </p>
+                  <p className="text-sm text-red-600 font-medium">Arrival Time</p>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Route stops hidden by user request */}
 
           <div className="p-6 border-b border-gray-200">
             <h4 className="text-lg font-semibold text-gray-800 mb-4">Passenger & Seat Details</h4>

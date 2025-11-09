@@ -3,6 +3,24 @@ import axiosInstance from "../../../axiosInstance";
 import { Pencil, Trash2, PlusCircle, Train, X } from "lucide-react";
 
 const TrainManagement = () => {
+  // Helper function to format and validate time
+  const validateTime = (time) => {
+    if (!time) return '';
+    // If time is already in HH:mm format, return as is
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+      return time.padStart(5, '0');
+    }
+    return '';
+  };
+
+  // Helper function to validate route times
+  const validateRouteTimes = (routes) => {
+    return routes.map(route => ({
+      ...route,
+      arrival: validateTime(route.arrival),
+      departure: validateTime(route.departure)
+    }));
+  };
   const [trains, setTrains] = useState([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -97,7 +115,9 @@ const TrainManagement = () => {
   // ✅ Clean Data Before Save
   const cleanTrainData = (data) => ({
     ...data,
-    routes: data.routes.filter((r) => r.stopName.trim() !== ""),
+    routes: validateRouteTimes(
+      data.routes.filter((r) => r.stopName.trim() !== "")
+    ),
     coaches: data.coaches
       .filter((c) => c.type.trim() !== "")
       .map((c) => ({
@@ -106,6 +126,8 @@ const TrainManagement = () => {
         seatsAvailable: Number(c.seatsAvailable) || 0,
         price: Number(c.price) || 0,
       })),
+    departureTime: validateTime(data.departureTime),
+    arrivalTime: validateTime(data.arrivalTime),
   });
 
   // ✅ Save / Update Train
@@ -307,7 +329,7 @@ const TrainManagement = () => {
                       className="border p-2 rounded-md"
                     />
                     <input
-                      type="text"
+                      type="time"
                       name="arrival"
                       placeholder="Arrival Time"
                       value={route.arrival}
@@ -315,7 +337,7 @@ const TrainManagement = () => {
                       className="border p-2 rounded-md"
                     />
                     <input
-                      type="text"
+                      type="time"
                       name="departure"
                       placeholder="Departure Time"
                       value={route.departure}
