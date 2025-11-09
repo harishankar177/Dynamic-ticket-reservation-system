@@ -65,6 +65,24 @@ const PassengerDetails = ({
   // pick first train for header display
   const mainTrain = selectedTrains[0] || {};
 
+  // Normalize train fields (some codepaths use trainName/trainNumber/price)
+  const displayName = mainTrain.name || mainTrain.trainName || mainTrain.train_name || 'Train Name';
+  const displayNumber = mainTrain.number || mainTrain.trainNumber || mainTrain.train_number || 'N/A';
+  const displayClass = mainTrain.selectedClass || mainTrain.selected_class || 'N/A';
+  
+  // Calculate price with minimum ₹134 per passenger
+  const minPricePerPassenger = 134;
+  const basePrice = mainTrain.selectedPrice || mainTrain.price || (totalAmount / passengerCount) || 0;
+  const pricePerPassenger = Math.max(basePrice, minPricePerPassenger);
+  const totalPrice = pricePerPassenger * passengerCount;
+  
+  const coaches = mainTrain.coachDetails || mainTrain.coaches || [];
+  // Prefer an explicitly provided selectedCoach, otherwise find by selected class
+  const selectedCoach = mainTrain.selectedCoach || coaches.find(c => c.type === displayClass);
+  const coachSummary = selectedCoach
+    ? `${selectedCoach.type}${selectedCoach.price ? ` • ₹${selectedCoach.price}` : ''}`
+    : (displayClass !== 'N/A' ? displayClass : 'N/A');
+
   return (
     <div className="max-w-5xl mx-auto p-6">
 
@@ -91,19 +109,26 @@ const PassengerDetails = ({
           </div>
           <div>
             <h2 className="text-xl font-semibold">
-              {mainTrain.name || 'Train Name'}
+              {displayName}
             </h2>
             <p className="text-sm opacity-90">
-              Train No: {mainTrain.number || 'N/A'}
+              Train No: {displayNumber}
             </p>
             <p className="text-sm opacity-90">
-              Coach: {mainTrain.selectedClass || 'N/A'}
+              Coach: {displayClass}
+            </p>
+            <p className="text-sm opacity-90 mt-1">
+              Coaches: {coachSummary}
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold">₹{mainTrain.selectedPrice || totalAmount}</p>
-          <p className="text-sm opacity-80">Total Fare</p>
+          <p className="text-lg">
+            <span className="opacity-80">₹{pricePerPassenger}</span>
+            <span className="text-sm opacity-70"> per passenger</span>
+          </p>
+          <p className="text-2xl font-bold">₹{totalPrice}</p>
+          <p className="text-sm opacity-80">Total for {passengerCount} {passengerCount === 1 ? 'passenger' : 'passengers'}</p>
         </div>
       </div>
 

@@ -288,7 +288,12 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRole="Passenger">
                 {selectedTrain ? (
-                  <PassengerDetails passengerCount={searchData?.passengers} onSubmit={handlePassengerDetails} />
+                  <PassengerDetails
+                    passengerCount={searchData?.passengers}
+                    selectedTrains={[selectedTrain]}
+                    totalAmount={selectedTrain?.price * (searchData?.passengers || 1)}
+                    onSubmit={handlePassengerDetails}
+                  />
                 ) : <Navigate to="/trains" replace />}
               </ProtectedRoute>
             } 
