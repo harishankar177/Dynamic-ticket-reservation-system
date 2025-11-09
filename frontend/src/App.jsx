@@ -185,6 +185,7 @@ function AppContent() {
   const [selectedTrain, setSelectedTrain] = useState(null);
   const [passengers, setPassengers] = useState([]);
   const [bookingData, setBookingData] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -239,9 +240,22 @@ function AppContent() {
     navigate('/passengers'); 
   };
 
-  const handlePassengerDetails = (passengerData) => { 
-    setPassengers(passengerData); 
-    navigate('/payment'); 
+  const handlePassengerDetails = (passengerData) => {
+    // passengerData may be either an array (old shape) or an object { passengers, totalPrice, pricePerPassenger }
+    if (Array.isArray(passengerData)) {
+      setPassengers(passengerData);
+      setPaymentAmount(null);
+    } else if (passengerData && passengerData.passengers) {
+      setPassengers(passengerData.passengers);
+      // store exact total so Payment displays the same amount
+      setPaymentAmount(passengerData.totalPrice ?? null);
+    } else {
+      // fallback
+      setPassengers([]);
+      setPaymentAmount(null);
+    }
+
+    navigate('/payment');
   };
 
   const handlePayment = () => {
@@ -249,7 +263,7 @@ function AppContent() {
       searchData,
       selectedTrain,
       passengers,
-      totalAmount: selectedTrain?.price ? selectedTrain.price * (searchData?.passengers || 1) : 0,
+      totalAmount: paymentAmount ?? (selectedTrain?.price ? selectedTrain.price * (searchData?.passengers || 1) : 0),
       bookingId: `RB${Date.now()}`,
     };
     setBookingData(booking);
@@ -261,6 +275,7 @@ function AppContent() {
     setSelectedTrain(null);
     setPassengers([]);
     setBookingData(null);
+    setPaymentAmount(null);
     navigate('/');
   };
 
@@ -304,7 +319,7 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRole="Passenger">
                 {passengers.length > 0 ? (
-                  <Payment totalAmount={selectedTrain?.price * (searchData?.passengers || 1)} onPayment={handlePayment} />
+                  <Payment totalAmount={paymentAmount ?? (selectedTrain?.price * (searchData?.passengers || 1))} onPayment={handlePayment} />
                 ) : <Navigate to="/passengers" replace />}
               </ProtectedRoute>
             } 

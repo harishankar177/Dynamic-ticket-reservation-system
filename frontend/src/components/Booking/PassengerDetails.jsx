@@ -59,7 +59,9 @@ const PassengerDetails = ({
       }
     }
 
-    onSubmit(passengers);
+    // Pass the passenger list along with the calculated pricing to the parent
+    // so the Payment page can show the exact same amount.
+    onSubmit({ passengers, totalPrice, pricePerPassenger });
   };
 
   // pick first train for header display

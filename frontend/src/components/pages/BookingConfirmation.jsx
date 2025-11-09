@@ -2,6 +2,14 @@ import React from 'react';
 import { CheckCircle, Download, Mail, Phone, Calendar, MapPin, Train } from 'lucide-react';
 
 const BookingConfirmation = ({ bookingData, onNewBooking }) => {
+  React.useEffect(() => {
+    // Add entrance animation class when component mounts
+    const container = document.getElementById('bookingConfirmationContainer');
+    if (container) {
+      container.style.animation = 'booking-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    }
+  }, []);
+
   // Early return / fallback when bookingData is not provided
   if (!bookingData) {
     return (
@@ -32,8 +40,8 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
   };
 
   return (
-    <div className="p-8">
-      <div className="text-center mb-8">
+    <div id="bookingConfirmationContainer" className="p-8 opacity-0">
+      <div className="text-center mb-8 animate-title-reveal">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
           <CheckCircle className="text-green-600" size={48} />
         </div>
