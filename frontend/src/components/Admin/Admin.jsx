@@ -5,14 +5,12 @@ import TrainManagement from '../Admin/pages/TrainManagement';
 import UserManagement from '../Admin/pages/UserManagement';
 import PassengerDetails from '../Admin/pages/PassengerDetails';
 import TTEDetails from '../Admin/pages/TTEDetails';
-import PlaceholderSection from '../Admin/pages/PlaceholderSection';
 import RoutesAndStations from './pages/RoutesAndStations';
-
+import TTEAssignmentForm from '../Admin/pages/TTEAssignmentForm'; // ✅ Assignment list
+import PlaceholderSection from '../Admin/pages/PlaceholderSection';
 import {
   Ticket,
   DollarSign,
-  AlertTriangle,
-  MapPin,
   BarChart3,
   Megaphone,
   Settings
@@ -43,7 +41,7 @@ const Admin = () => {
         return (
           <PlaceholderSection
             title="Booking Management"
-            description="Monitor and manage all passenger bookings, cancellations, and refunds"
+            description="Monitor and manage all passenger bookings"
             icon={Ticket}
           />
         );
@@ -51,17 +49,14 @@ const Admin = () => {
         return (
           <PlaceholderSection
             title="Revenue & Finance"
-            description="Track revenue, fines collected, and generate financial reports"
+            description="Track revenue and generate financial reports"
             icon={DollarSign}
           />
         );
-      case 'incidents':
+      // ✅ Assignment List
+      case 'assignmentList':
         return (
-          <PlaceholderSection
-            title="Incident Management"
-            description="Review and resolve incidents, complaints, and emergency reports"
-            icon={AlertTriangle}
-          />
+          <TTEAssignmentForm onSuccess={() => setActiveSection('dashboard')} />
         );
       case 'routes':
         return <RoutesAndStations />;
@@ -69,7 +64,7 @@ const Admin = () => {
         return (
           <PlaceholderSection
             title="Reports & Analytics"
-            description="Generate comprehensive reports on bookings, revenue, and performance"
+            description="Generate comprehensive system reports"
             icon={BarChart3}
           />
         );
@@ -77,7 +72,7 @@ const Admin = () => {
         return (
           <PlaceholderSection
             title="Announcements"
-            description="Send important updates, alerts, and offers to users"
+            description="Send updates and alerts to users"
             icon={Megaphone}
           />
         );
@@ -85,7 +80,7 @@ const Admin = () => {
         return (
           <PlaceholderSection
             title="System Settings"
-            description="Configure fare structures, stations, and platform preferences"
+            description="Configure fares and preferences"
             icon={Settings}
           />
         );
