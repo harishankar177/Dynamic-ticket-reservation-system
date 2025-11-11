@@ -7,6 +7,7 @@ import PassengerDetails from '../Admin/pages/PassengerDetails';
 import TTEDetails from '../Admin/pages/TTEDetails';
 import RoutesAndStations from './pages/RoutesAndStations';
 import TTEAssignmentForm from '../Admin/pages/TTEAssignmentForm'; // ✅ Assignment list
+import TTEAssignmentDetails from '../Admin/pages/TTEAssignmentDetails';
 import PlaceholderSection from '../Admin/pages/PlaceholderSection';
 import {
   Ticket,
@@ -45,14 +46,11 @@ const Admin = () => {
             icon={Ticket}
           />
         );
-      case 'revenue':
-        return (
-          <PlaceholderSection
-            title="Revenue & Finance"
-            description="Track revenue and generate financial reports"
-            icon={DollarSign}
-          />
-        );
+      // ✅ New TTE Assignment
+case 'tteAssignment':
+  return (
+    <TTEAssignmentDetails onSuccess={() => setActiveSection('dashboard')} />
+  );
       // ✅ Assignment List
       case 'assignmentList':
         return (

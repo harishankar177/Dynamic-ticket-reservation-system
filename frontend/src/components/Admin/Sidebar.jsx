@@ -22,7 +22,7 @@ const menuItems = [
   { id: 'trains', label: 'Manage Trains', icon: Train },
   { id: 'users', label: 'User Management', icon: Users },
   { id: 'bookings', label: 'Bookings', icon: Ticket },
-  { id: 'revenue', label: 'Revenue & Finance', icon: DollarSign },
+  { id: 'tteAssignment', label: 'TTE Assignment', icon: User },
   { id: 'assignmentList', label: 'Assignment List', icon: List }, // ✅ replaced TTE Assignment
   { id: 'routes', label: 'Routes & Stations', icon: MapPin },
   { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
