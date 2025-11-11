@@ -12,8 +12,6 @@ import { Train, Users, CreditCard, CheckCircle } from 'lucide-react';
 import Header from './components/Header';
 import SearchForm from './components/pages/SearchForm';
 import TrainList from './components/Booking/TrainList';
-import PNRStatus from './components/pages/PNRStatus';
-import TrainLiveStatus from './components/pages/TrainLiveStatus';
 import PassengerDetails from './components/Booking/PassengerDetails';
 import MyBookings from './components/pages/MyBookings';
 import Payment from './components/pages/Payment';
@@ -344,9 +342,6 @@ function AppContent() {
                 </ProtectedRoute>
               } 
             />
-
-            <Route path="/pnr-status" element={<PNRStatus />} />
-            <Route path="/train-status" element={<TrainLiveStatus />} />
 
 
           {/* Auth Routes */}

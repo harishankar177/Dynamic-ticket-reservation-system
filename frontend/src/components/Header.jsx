@@ -36,9 +36,13 @@ const Header = () => {
     navigate('/login');
   };
 
-  // Don't show header for TTE and Admin roles
+  // 🔧 Modified condition: Hide header for TTE, Admin, or Train Status page
   const user = getUserFromStorage();
-  if (user && (user.role.toLowerCase() === 'tte' || user.role.toLowerCase() === 'admin')) {
+  const hideHeader =
+    (user && (user.role.toLowerCase() === 'tte' || user.role.toLowerCase() === 'admin')) ||
+    location.pathname === '/status';
+
+  if (hideHeader) {
     return null;
   }
 
@@ -111,7 +115,6 @@ const Header = () => {
                     <User size={16} />
                   </div>
                   <div className="text-left">
-                    {/* ✅ Added Welcome message */}
                     <p className="text-sm font-medium">
                       Welcome, {currentUser.username || currentUser.name || 'User'}
                     </p>
@@ -121,10 +124,8 @@ const Header = () => {
                   </div>
                 </button>
 
-
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white text-gray-800 rounded-lg shadow-xl z-50 border border-gray-200">
-                    {/* User Info */}
                     <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white">
@@ -141,7 +142,6 @@ const Header = () => {
                       </div>
                     </div>
 
-                    {/* Profile Actions */}
                     <div className="p-2">
                       <Link 
                         to="/profile" 
@@ -153,7 +153,6 @@ const Header = () => {
                       </Link>
                     </div>
 
-                    {/* Logout Button */}
                     <div className="p-2 border-t border-gray-200">
                       <button
                         onClick={handleLogout}
@@ -207,7 +206,6 @@ const Header = () => {
           {/* Sidebar */}
           <div className="fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-blue-900 to-purple-900 text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden">
             <div className="p-6 h-full flex flex-col">
-              {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
                   <div className="bg-white bg-opacity-20 p-2 rounded-lg">
@@ -226,7 +224,6 @@ const Header = () => {
                 </button>
               </div>
 
-              {/* User Info Section */}
               {currentUser && (
                 <div className="mb-6 p-4 bg-white bg-opacity-10 rounded-lg">
                   <div className="flex items-center space-x-3">
@@ -242,7 +239,6 @@ const Header = () => {
                 </div>
               )}
 
-              {/* Navigation */}
               <nav className="space-y-2 flex-1">
                 <Link 
                   to="/" 
@@ -255,9 +251,11 @@ const Header = () => {
               
                 <Link 
                   to="/bookings" 
-                  className="hover:text-blue-200 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-10"
+                  onClick={toggleSidebar}
+                  className="flex items-center space-x-3 py-3 px-4 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
                 >
-                  My Bookings
+                  <span>📘</span>
+                  <span>My Bookings</span>
                 </Link>
 
                 <Link 
@@ -292,7 +290,6 @@ const Header = () => {
                 ) : null}
               </nav>
 
-              {/* Auth Section */}
               <div className="pt-6 border-t border-white border-opacity-20">
                 {!currentUser ? (
                   <Link 
@@ -317,7 +314,6 @@ const Header = () => {
                 )}
               </div>
 
-              {/* Contact Info in Mobile */}
               <div className="mt-6 pt-4 border-t border-white border-opacity-20">
                 <div className="space-y-2 text-sm text-blue-200">
                   <div className="flex items-center space-x-2">
