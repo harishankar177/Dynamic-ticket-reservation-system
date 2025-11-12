@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Plus, Search, CreditCard as Edit2, Trash2, UserCheck, UserX, X } from 'lucide-react';
 
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-  const [users, setUsers] = useState([
-    { id: 1, name: 'Rajesh Kumar', email: 'rajesh@example.com', phone: '9876543210', role: 'passenger', isActive: true, joinDate: '2024-01-15' },
-    { id: 2, name: 'Priya Sharma', email: 'priya@example.com', phone: '9876543211', role: 'passenger', isActive: true, joinDate: '2024-02-20' },
-    { id: 3, name: 'Amit Patel', email: 'amit@example.com', phone: '9876543212', role: 'tte', isActive: true, joinDate: '2023-11-10', registerNumber: 'TTE1234' },
-    { id: 4, name: 'Sneha Gupta', email: 'sneha@example.com', phone: '9876543213', role: 'tte', isActive: true, joinDate: '2023-12-05', registerNumber: 'TTE5678' },
-    { id: 5, name: 'Vikram Singh', email: 'vikram@example.com', phone: '9876543214', role: 'passenger', isActive: false, joinDate: '2024-03-12' },
-  ]);
-
+  const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
   const [newUser, setNewUser] = useState({
@@ -24,62 +18,83 @@ export default function UserManagement() {
     joinDate: new Date().toISOString().split('T')[0],
   });
 
+  const API_BASE = 'http://localhost:3000/api/users'; // replace with your backend URL
+
+  // Fetch users from backend
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get(API_BASE);
+      setUsers(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.phone.includes(searchTerm);
+    const matchesSearch =
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone?.includes(searchTerm);
     const matchesRole = filterRole === 'all' || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
 
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  }
+  const validateEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleAddOrEditUser = (e) => {
+  const handleAddOrEditUser = async e => {
     e.preventDefault();
 
     // Validation
-    if (!validateEmail(newUser.email)) {
-      alert("Please enter a valid email address.");
-      return;
-    }
-    if (newUser.phone.length !== 10) {
-      alert("Phone number must be 10 digits.");
-      return;
-    }
-    if (newUser.role === 'passenger') {
-      alert("Admins cannot add passengers. Please choose TTE or Admin.");
-      return;
-    }
-    if (newUser.role === 'tte' && !newUser.registerNumber.trim()) {
-      alert("Please enter the TTE Register Number.");
-      return;
-    }
+    if (!validateEmail(newUser.email)) return alert('Please enter a valid email.');
+    if (newUser.phone.length !== 10) return alert('Phone must be 10 digits.');
+    if (newUser.role === 'passenger') return alert('Admins cannot add passengers.');
+    if (newUser.role === 'tte' && !newUser.registerNumber.trim())
+      return alert('Please enter TTE Register Number.');
 
-    if (editUserId) {
-      setUsers(users.map(u => u.id === editUserId ? { ...u, ...newUser } : u));
-    } else {
-      setUsers([...users, { id: users.length + 1, ...newUser }]);
+    try {
+      if (editUserId) {
+        // Edit user
+        await axios.put(`${API_BASE}/${editUserId}`, newUser);
+      } else {
+        // Add user
+        await axios.post(API_BASE, newUser);
+      }
+      fetchUsers();
+      resetForm();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Something went wrong.');
     }
-    resetForm();
   };
 
-  const handleEditClick = (user) => {
-    setEditUserId(user.id);
-    setNewUser({ ...user });
+  const handleEditClick = user => {
+    setEditUserId(user._id);
+    setNewUser({ ...user, joinDate: user.joinDate?.split('T')[0] });
     setIsModalOpen(true);
   };
 
-  const handleToggleStatus = (id) => {
-    setUsers(users.map(user =>
-      user.id === id ? { ...user, isActive: !user.isActive } : user
-    ));
+  const handleToggleStatus = async id => {
+    try {
+      const user = users.find(u => u._id === id);
+      await axios.patch(`${API_BASE}/${id}/status`, { isActive: !user.isActive });
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDelete = (id) => {
-    setUsers(users.filter(user => user.id !== id));
+  const handleDelete = async id => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await axios.delete(`${API_BASE}/${id}`);
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const resetForm = () => {
@@ -122,13 +137,13 @@ export default function UserManagement() {
               type="text"
               placeholder="Search users by name, email, or phone..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <select
             value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
+            onChange={e => setFilterRole(e.target.value)}
             className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">All Roles</option>
@@ -153,31 +168,37 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+              {filteredUsers.map(user => (
+                <tr key={user._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="py-3 px-4 text-sm font-medium text-slate-800">{user.name}</td>
                   <td className="py-3 px-4 text-sm text-slate-700">{user.email}</td>
                   <td className="py-3 px-4 text-sm text-slate-700">{user.phone}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin' ? 'bg-violet-100 text-violet-700' :
-                      user.role === 'tte' ? 'bg-blue-100 text-blue-700' :
-                      'bg-slate-100 text-slate-700'
-                    }`}>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        user.role === 'admin'
+                          ? 'bg-violet-100 text-violet-700'
+                          : user.role === 'tte'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
                       {user.role.toUpperCase()}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-700">
-                    {user.role === 'tte' ? (user.registerNumber || '-') : '-'}
+                    {user.role === 'tte' ? user.registerNumber || '-' : '-'}
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                      user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}
+                    >
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-slate-700">{user.joinDate}</td>
+                  <td className="py-3 px-4 text-sm text-slate-700">{user.joinDate?.split('T')[0]}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <button
@@ -188,14 +209,18 @@ export default function UserManagement() {
                         <Edit2 size={16} className="text-slate-600" />
                       </button>
                       <button
-                        onClick={() => handleToggleStatus(user.id)}
+                        onClick={() => handleToggleStatus(user._id)}
                         className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
                         title={user.isActive ? 'Deactivate' : 'Activate'}
                       >
-                        {user.isActive ? <UserX size={16} className="text-amber-600" /> : <UserCheck size={16} className="text-green-600" />}
+                        {user.isActive ? (
+                          <UserX size={16} className="text-amber-600" />
+                        ) : (
+                          <UserCheck size={16} className="text-green-600" />
+                        )}
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user._id)}
                         className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                         title="Delete"
                       >
@@ -228,7 +253,9 @@ export default function UserManagement() {
                 type="text"
                 placeholder="Name"
                 value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+                onChange={e =>
+                  setNewUser({ ...newUser, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })
+                }
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
                 required
               />
@@ -236,7 +263,7 @@ export default function UserManagement() {
                 type="email"
                 placeholder="Email"
                 value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
                 required
               />
@@ -245,13 +272,13 @@ export default function UserManagement() {
                 placeholder="Phone"
                 value={newUser.phone}
                 maxLength={10}
-                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value.replace(/[^0-9]/g, '') })}
+                onChange={e => setNewUser({ ...newUser, phone: e.target.value.replace(/[^0-9]/g, '') })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
                 required
               />
               <select
                 value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value, registerNumber: '' })}
+                onChange={e => setNewUser({ ...newUser, role: e.target.value, registerNumber: '' })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="tte">TTE</option>
@@ -263,7 +290,7 @@ export default function UserManagement() {
                   type="text"
                   placeholder="TTE Register Number"
                   value={newUser.registerNumber}
-                  onChange={(e) => setNewUser({ ...newUser, registerNumber: e.target.value })}
+                  onChange={e => setNewUser({ ...newUser, registerNumber: e.target.value })}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
                   required
                 />
@@ -271,7 +298,7 @@ export default function UserManagement() {
 
               <select
                 value={newUser.isActive ? 'active' : 'inactive'}
-                onChange={(e) => setNewUser({ ...newUser, isActive: e.target.value === 'active' })}
+                onChange={e => setNewUser({ ...newUser, isActive: e.target.value === 'active' })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="active">Active</option>
@@ -280,7 +307,7 @@ export default function UserManagement() {
               <input
                 type="date"
                 value={newUser.joinDate}
-                onChange={(e) => setNewUser({ ...newUser, joinDate: e.target.value })}
+                onChange={e => setNewUser({ ...newUser, joinDate: e.target.value })}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
               />
               <div className="flex justify-end gap-3">

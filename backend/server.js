@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 
 // EXISTING AUTH ROUTES
 import authRouter from './routes/auth.js';
+import userRoutes from './routes/userRoutes.js';
 
 // ✅ NEW: Train Routes
 import trainRoutes from './routes/trainRoutes.js';
@@ -23,6 +24,7 @@ app.use('/api/auth', authRouter);
 // ✅ NEW: Train management routes
 app.use('/api/trains', trainRoutes);
 app.use('/api/bookings', bookingRoutes)
+app.use('/api/users', userRoutes);
 
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/Railbook';
