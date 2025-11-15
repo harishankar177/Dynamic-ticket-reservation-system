@@ -1,9 +1,9 @@
 import React from 'react';
-import { CheckCircle, Download, Mail, Phone, Calendar, MapPin, Train } from 'lucide-react';
+import { CheckCircle, Download, Mail, Phone, Train } from 'lucide-react';
 
 const BookingConfirmation = ({ bookingData, onNewBooking }) => {
 
-  // 🔹 Auto-generate seat & coach numbers if not passed
+  // 🔹 Auto-generate seat & coach numbers if user didn't select
   const generateSeatDetails = (count) => {
     const generated = [];
     const coachPrefix =
@@ -11,66 +11,65 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
 
     for (let i = 0; i < count; i++) {
       generated.push({
-        coach: `${coachPrefix}1`,                // Coach example → S1, A1
-        seatNumber: `${i + 1}`,                 // Seat number → 1,2,3...
+        coach: `${coachPrefix}1`,
+        seatNumber: `${i + 1}`,
         class: bookingData?.selectedTrain?.selectedClass ?? "General"
       });
     }
     return generated;
   };
 
-  // 🔹 Decide final seat list
   const finalSeatList =
     bookingData?.selectedSeats?.length > 0
       ? bookingData.selectedSeats
       : generateSeatDetails(bookingData?.passengers?.length || 0);
 
-
-  // Format time to 24-hour format (HH:mm)
-  const formatTime = (time) => {
-    if (!time) return '—';
-    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
-      return time.padStart(5, '0');
-    }
+  // ⭐ API: Save booking to backend database
+  const saveBookingToDB = async () => {
     try {
-      const [hours, minutes] = time.split(':').map(Number);
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    } catch (e) {
-      return '—';
+      const payload = {
+        bookingId: bookingData.bookingId,
+        trainName: bookingData?.selectedTrain?.trainName,
+        trainNumber: bookingData?.selectedTrain?.trainNumber,
+        passengers: bookingData.passengers,
+        seats: finalSeatList,
+        email: bookingData?.passengers?.[0]?.email,
+        phone: bookingData?.passengers?.[0]?.phone,
+        paymentStatus: "Paid",
+        amountPaid: bookingData.totalAmount,
+      };
+
+      const res = await fetch("http://localhost:3000/api/bookings/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      console.log("🎉 Booking Saved Successfully:", data);
+
+    } catch (error) {
+      console.error("❌ Booking Save Failed:", error);
     }
   };
 
+  // 🔹 Run only once to avoid duplicate saving
   React.useEffect(() => {
-    const container = document.getElementById('bookingConfirmationContainer');
-    if (container) {
-      container.style.animation = 'booking-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
-    }
+    saveBookingToDB();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const routeStops = (bookingData?.selectedTrain?.selectedStops && bookingData.selectedTrain.selectedStops.length)
-    ? bookingData.selectedTrain.selectedStops
-    : (bookingData?.selectedTrain?.routes || []);
-
+  // 📥 Dummy function for future implementation
   const handleDownloadTicket = () => {
-    alert('Ticket download will be available shortly. Check your email for the e-ticket.');
+    alert("Ticket download feature coming soon!");
   };
 
   const handleSendEmail = () => {
-    alert('E-ticket sent to your registered email address.');
+    alert("Ticket email sending feature coming soon!");
   };
 
-  if (!bookingData) {
-    return (
-      <div className="p-8 text-center">
-        <button onClick={onNewBooking} className="bg-purple-600 text-white px-4 py-2 rounded-lg">
-          Book Now
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div id="bookingConfirmationContainer" className="p-8 opacity-0">
+    <div id="bookingConfirmationContainer" className="p-8 opacity-100">
       <div className="text-center mb-8 animate-title-reveal">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
           <CheckCircle className="text-green-600" size={48} />
@@ -84,9 +83,6 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
           onClick={onNewBooking}
           className="mt-4 flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl mx-auto"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-          </svg>
           <span>Book Another Journey</span>
         </button>
       </div>
@@ -100,14 +96,14 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
               </div>
               <div>
                 <h3 className="text-2xl font-bold">
-                  {bookingData?.selectedTrain?.trainName || bookingData?.selectedTrain?.name || 'Train Name'}
+                  {bookingData?.selectedTrain?.trainName}
                 </h3>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="px-2 py-0.5 bg-white/20 rounded text-sm">
-                    Train #{bookingData?.selectedTrain?.trainNumber || bookingData?.selectedTrain?.number || 'N/A'}
+                    Train #{bookingData?.selectedTrain?.trainNumber}
                   </span>
                   <span className="px-2 py-0.5 bg-white/20 rounded text-sm">
-                    {bookingData?.selectedTrain?.selectedClass || 'N/A'}
+                    {bookingData?.selectedTrain?.selectedClass}
                   </span>
                 </div>
               </div>
@@ -119,7 +115,7 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
           </div>
         </div>
 
-        {/* 🚆 Passenger Details – With Auto Seat + Coach Display */}
+        {/* Passenger & Seat Details */}
         <div className="bg-white border border-gray-200 rounded-b-xl shadow-lg">
           <div className="p-6 border-b border-gray-200">
             <h4 className="text-lg font-semibold text-gray-800 mb-4">Passenger & Seat Details</h4>
@@ -146,21 +142,22 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
             </div>
           </div>
 
-          {/* Contact, Important notes and Buttons remain unchanged */}
+          {/* Contact Info */}
           <div className="p-6 border-b border-gray-200">
             <h4 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center space-x-3">
                 <Mail className="text-blue-600" size={20} />
-                <span className="text-gray-700">{bookingData?.passengers?.[0]?.email ?? '—'}</span>
+                <span className="text-gray-700">{bookingData?.passengers?.[0]?.email}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="text-green-600" size={20} />
-                <span className="text-gray-700">{bookingData?.passengers?.[0]?.phone ?? '—'}</span>
+                <span className="text-gray-700">{bookingData?.passengers?.[0]?.phone}</span>
               </div>
             </div>
           </div>
 
+          {/* Info List */}
           <div className="p-6">
             <h4 className="text-lg font-semibold text-gray-800 mb-4">Important Information</h4>
             <ul className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-sm text-yellow-800 space-y-2">
@@ -173,14 +170,17 @@ const BookingConfirmation = ({ bookingData, onNewBooking }) => {
           </div>
         </div>
 
+        {/* Footer Actions */}
         <div className="flex flex-col md:flex-row gap-4 mt-8">
-          <button onClick={handleDownloadTicket} className="bg-blue-600 text-white px-6 py-3 rounded-lg">
+          <button onClick={handleDownloadTicket} className="bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center gap-2">
             <Download size={20} /> Download E-Ticket
           </button>
-          <button onClick={handleSendEmail} className="bg-green-600 text-white px-6 py-3 rounded-lg">
+
+          <button onClick={handleSendEmail} className="bg-green-600 text-white px-6 py-3 rounded-lg flex items-center gap-2">
             <Mail size={20} /> Send to Email
           </button>
-          <button onClick={onNewBooking} className="bg-purple-600 text-white px-6 py-3 rounded-lg">
+
+          <button onClick={onNewBooking} className="bg-purple-600 text-white px-6 py-3 rounded-lg flex items-center gap-2">
             <Train size={20} /> Book Another Ticket
           </button>
         </div>

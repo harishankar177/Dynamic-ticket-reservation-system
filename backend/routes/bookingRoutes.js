@@ -1,39 +1,52 @@
-import express from 'express';
-import Booking from '../models/Booking.js';
+// routes/bookingRoutes.js
+import express from "express";
+import Booking from "../models/Booking.js";
 
 const router = express.Router();
 
-// Utility: generate unique Booking ID (PNR-like)
-function generateBookingId() {
-  const prefix = 'RBK';
-  const randomDigits = Math.floor(100000 + Math.random() * 900000); // 6 digits
-  return `${prefix}${randomDigits}`;
-}
-
-// ✅ POST - Store booking data in MongoDB
-router.post('/', async (req, res) => {
+// CREATE NEW BOOKING API
+router.post("/create", async (req, res) => {
   try {
-    // Auto-generate bookingId (PNR)
-    const bookingId = generateBookingId();
+    const bookingData = req.body;
 
-    // Merge bookingId into the data sent from frontend
-    const bookingData = { ...req.body, bookingId };
+    // Generate unique booking ID
+    const bookingId = "RB" + Math.floor(100000 + Math.random() * 900000);
 
-    // Save to MongoDB
-    const booking = new Booking(bookingData);
-    await booking.save();
+    // Save to database
+    const newBooking = new Booking({ ...bookingData, bookingId });
+    await newBooking.save();
 
-    res.status(201).json({
-      message: 'Booking stored successfully',
+    return res.status(201).json({
+      message: "Booking saved successfully",
       bookingId,
-      booking,
+      data: newBooking,
     });
+  } catch (error) {
+    console.error("❌ Booking save error:", error);
+    res.status(500).json({ message: "Error saving booking", error });
+  }
+});
+
+// GET ALL BOOKINGS
+router.get("/", async (req, res) => {
+  try {
+    const bookings = await Booking.find();
+    res.status(200).json(bookings);
   } catch (err) {
-    console.error('❌ Booking save error:', err);
-    res.status(500).json({
-      message: 'Failed to store booking',
-      error: err.message,
-    });
+    res.status(500).json({ message: "Error fetching bookings", err });
+  }
+});
+
+// GET BOOKING BY BOOKING ID
+router.get("/:bookingId", async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ bookingId: req.params.bookingId });
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching booking", err });
   }
 });
 
